@@ -6,6 +6,7 @@ export default function ExperienceScene() {
     <>
       <ambientLight intensity={1.5} />
       <directionalLight position={[3, 4, 5]} intensity={3} />
+      <directionalLight position={[-3, 2, 4]} intensity={1.25} />
 
       <Suspense fallback={null}>
         <ProductStage />

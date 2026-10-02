@@ -2,7 +2,11 @@ import HeadphoneModel from "./HeadphoneModel";
 
 export default function ProductStage() {
   return (
-    <group scale={2.2}>
+    <group
+      position={[0, -1.5, 0]}
+      rotation={[0, 0, 0]}
+      scale={1.6}
+    >
       <HeadphoneModel />
     </group>
   );
