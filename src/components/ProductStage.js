@@ -1,13 +1,27 @@
+"use client";
+
+import { useRef } from "react";
 import HeadphoneModel from "./HeadphoneModel";
+import { PRODUCT_STATES } from "@/config/productStates";
 
 export default function ProductStage() {
+  const productRootRef = useRef(null);
+  const earPadRef = useRef(null);
+  const coverRef = useRef(null);
+
+  const { product } = PRODUCT_STATES.neutral;
+
   return (
     <group
-      position={[0, -1.5, 0]}
-      rotation={[0, 0, 0]}
-      scale={1.6}
+      ref={productRootRef}
+      position={product.position}
+      rotation={product.rotation}
+      scale={product.scale}
     >
-      <HeadphoneModel />
+      <HeadphoneModel
+        earPadRef={earPadRef}
+        coverRef={coverRef}
+      />
     </group>
   );
 }
