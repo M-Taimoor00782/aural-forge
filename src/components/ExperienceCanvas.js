@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import ExperienceScene from "./ExperienceScene";
 import { PRODUCT_STATES } from "@/config/productStates";
 
-export default function ExperienceCanvas() {
+export default function ExperienceCanvas({ activeProductState }) {
   const { camera } = PRODUCT_STATES.neutral;
 
   return (
@@ -17,7 +17,7 @@ export default function ExperienceCanvas() {
         far: 1000,
       }}
     >
-      <ExperienceScene />
+      <ExperienceScene activeProductState={activeProductState} />
     </Canvas>
   );
 }

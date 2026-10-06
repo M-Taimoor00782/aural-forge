@@ -1,6 +1,8 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
+import { resolveProductState } from "@/config/productStates";
 
 const ExperienceCanvas = dynamic(() => import("./ExperienceCanvas"), {
   ssr: false,
@@ -8,5 +10,16 @@ const ExperienceCanvas = dynamic(() => import("./ExperienceCanvas"), {
 });
 
 export default function ExperienceRuntime() {
-  return <ExperienceCanvas />;
+  const [activeProductState, setActiveProductState] = useState("neutral");
+
+  const selectProductState = useCallback((stateName) => {
+    resolveProductState(stateName);
+    setActiveProductState(stateName);
+  }, []);
+
+  return (
+    <ExperienceCanvas
+      activeProductState={activeProductState}
+    />
+  );
 }

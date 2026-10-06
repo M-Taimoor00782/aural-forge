@@ -51,3 +51,19 @@ export const PRODUCT_STATES = {
     },
   },
 };
+
+
+export function resolveProductState(stateName) {
+  const state = PRODUCT_STATES[stateName];
+
+  if (!state) {
+    throw new Error(
+      `[productStates] Unknown product state "${stateName}".`
+    );
+  }
+
+  return {
+    product: state.product,
+    camera: state.camera ?? PRODUCT_STATES.neutral.camera,
+  };
+}
