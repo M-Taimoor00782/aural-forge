@@ -4,7 +4,8 @@ import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import HeadphoneModel from "./HeadphoneModel";
 import { resolveProductState } from "@/config/productStates";
-import { PRODUCT_REVEAL } from "@/config/productReveal";
+import { animateProductReveal } from "@/lib/animateProductReveal";
+import { animateProductState } from "@/lib/animateProductState";
 
 function captureLocalTransform(object) {
   return {
@@ -14,45 +15,49 @@ function captureLocalTransform(object) {
   };
 }
 
-function restoreLocalTransform(object, transform) {
-  object.position.copy(transform.position);
-  object.quaternion.copy(transform.quaternion);
-  object.scale.copy(transform.scale);
-}
-
-export default function ProductStage({ activeProductState }) {
+export default function ProductStage({
+  activeProductState,
+  acousticRevealActive = false,
+}) {
   const productRootRef = useRef(null);
   const earPadRef = useRef(null);
   const coverRef = useRef(null);
 
   const assembledPartsRef = useRef(null);
   const revealActiveRef = useRef(false);
+  const revealTimelineRef = useRef(null);
 
   const invalidate = useThree((state) => state.invalidate);
 
   const { product } = resolveProductState(activeProductState);
 
+ useEffect(() => {
+  const productRoot = productRootRef.current;
+
+  if (!productRoot) {
+    return;
+  }
+
+  const timeline = animateProductState({
+    productRoot,
+    productTarget: product,
+    invalidate,
+  });
+
+  return () => {
+    timeline.kill();
+  };
+}, [product, invalidate]);
+
   useEffect(() => {
-    const productRoot = productRootRef.current;
-
-    if (!productRoot) {
-      return;
-    }
-
-    productRoot.position.set(...product.position);
-    productRoot.rotation.set(...product.rotation);
-    productRoot.scale.setScalar(product.scale);
-
-    invalidate();
-  }, [product, invalidate]);
-
-  function handleRevealToggle(event) {
-    event.stopPropagation();
-
     const earPad = earPadRef.current;
     const cover = coverRef.current;
 
     if (!earPad || !cover) {
+      return;
+    }
+
+    if (acousticRevealActive === revealActiveRef.current) {
       return;
     }
 
@@ -63,35 +68,34 @@ export default function ProductStage({ activeProductState }) {
       };
     }
 
-    const assembled = assembledPartsRef.current;
+    revealTimelineRef.current?.kill();
 
-    restoreLocalTransform(earPad, assembled.earPad);
-    restoreLocalTransform(cover, assembled.cover);
+    const timeline = animateProductReveal({
+      earPad,
+      cover,
+      assembled: assembledPartsRef.current,
+      reveal: acousticRevealActive,
+      invalidate,
+      onComplete: () => {
+        if (revealTimelineRef.current === timeline) {
+          revealTimelineRef.current = null;
+        }
+      },
+    });
 
-    if (revealActiveRef.current) {
-      revealActiveRef.current = false;
-    } else {
-      earPad.translateZ(PRODUCT_REVEAL.earPad.localZ);
-      cover.translateZ(PRODUCT_REVEAL.cover.localZ);
+    revealTimelineRef.current = timeline;
+    revealActiveRef.current = acousticRevealActive;
+  }, [acousticRevealActive, invalidate]);
 
-      revealActiveRef.current = true;
-    }
-
-    earPad.updateMatrixWorld(true);
-    cover.updateMatrixWorld(true);
-
-    invalidate();
-  }
+  useEffect(() => {
+    return () => {
+      revealTimelineRef.current?.kill();
+    };
+  }, []);
 
   return (
-    <group
-      ref={productRootRef}
-      onClick={handleRevealToggle}
-    >
-      <HeadphoneModel
-        earPadRef={earPadRef}
-        coverRef={coverRef}
-      />
+    <group ref={productRootRef}>
+      <HeadphoneModel earPadRef={earPadRef} coverRef={coverRef} />
     </group>
   );
 }

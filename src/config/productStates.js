@@ -11,29 +11,41 @@ export const PRODUCT_STATES = {
     },
   },
 
-  hero: {
-    product: {
-      position: [0, -1.5, 0],
-      rotation: [0, -0.12, 0],
-      scale: 1.6,
-    },
+ hero: {
+  product: {
+    position: [0, -1.5, 0],
+    rotation: [0, -0.12, 0],
+    scale: 1.6,
   },
+  camera: {
+    position: [0, 0, 4.7],
+    fov: 42,
+  },
+},
 
   performanceDetail: {
-    product: {
-      position: [0, -1.5, 0],
-      rotation: [0, -0.35, 0],
-      scale: 1.6,
-    },
+  product: {
+    position: [0, -1.5, 0],
+    rotation: [0, -0.35, 0],
+    scale: 1.6,
   },
+  camera: {
+    position: [0, 0, 4.45],
+    fov: 40,
+  },
+},
 
   acousticReveal: {
-    product: {
-      position: [0, -1.5, 0],
-      rotation: [0, -0.5, 0],
-      scale: 1.6,
-    },
+  product: {
+    position: [0, -1.5, 0],
+    rotation: [0, -0.5, 0],
+    scale: 1.6,
   },
+  camera: {
+    position: [0, 0, 4.45],
+    fov: 40,
+  },
+},
 
   configurator: {
     product: {
@@ -43,13 +55,17 @@ export const PRODUCT_STATES = {
     },
   },
 
-  finale: {
-    product: {
-      position: [0, -1.5, 0],
-      rotation: [0, 0.18, 0],
-      scale: 1.6,
-    },
+ finale: {
+  product: {
+    position: [0, -1.5, 0],
+    rotation: [0, 0.18, 0],
+    scale: 1.6,
   },
+  camera: {
+    position: [0, 0, 4.7],
+    fov: 42,
+  },
+},
 };
 
 

@@ -5,4 +5,9 @@ export const PRODUCT_REVEAL = {
   cover: {
     localZ: 0.45,
   },
+
+  motion: {
+    duration: 0.65,
+    ease: "power2.inOut",
+  },
 };

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import { resolveProductState } from "@/config/productStates";
+import { animateCameraState } from "@/lib/animateCameraState";
 
 export default function CameraStateController({ activeProductState }) {
   const get = useThree((state) => state.get);
@@ -14,11 +15,15 @@ export default function CameraStateController({ activeProductState }) {
   useEffect(() => {
     const camera = get().camera;
 
-    camera.position.set(...cameraTarget.position);
-    camera.fov = cameraTarget.fov;
-    camera.updateProjectionMatrix();
+    const timeline = animateCameraState({
+      camera,
+      cameraTarget,
+      invalidate,
+    });
 
-    invalidate();
+    return () => {
+      timeline.kill();
+    };
   }, [get, cameraTarget, invalidate]);
 
   return null;
