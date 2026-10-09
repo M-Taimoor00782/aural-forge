@@ -1,8 +1,11 @@
+
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
+
 import HeadphoneModel from "./HeadphoneModel";
+
 import { resolveProductState } from "@/config/productStates";
 import { animateProductReveal } from "@/lib/animateProductReveal";
 import { animateProductState } from "@/lib/animateProductState";
@@ -16,10 +19,12 @@ function captureLocalTransform(object) {
 }
 
 export default function ProductStage({
+  productRootRef,
+  modelBounds,
   activeProductState,
   acousticRevealActive = false,
+  choreographyActive = false,
 }) {
-  const productRootRef = useRef(null);
   const earPadRef = useRef(null);
   const coverRef = useRef(null);
 
@@ -27,27 +32,45 @@ export default function ProductStage({
   const revealActiveRef = useRef(false);
   const revealTimelineRef = useRef(null);
 
-  const invalidate = useThree((state) => state.invalidate);
+  const invalidate = useThree(
+    (state) => state.invalidate
+  );
 
-  const { product } = resolveProductState(activeProductState);
+  const viewport = useThree(
+    (state) => state.size
+  );
 
- useEffect(() => {
-  const productRoot = productRootRef.current;
+  const { product } = useMemo(
+    () =>
+      resolveProductState(activeProductState, {
+        viewport,
+        modelBounds,
+      }),
+    [activeProductState, viewport, modelBounds]
+  );
 
-  if (!productRoot) {
-    return;
-  }
+  useEffect(() => {
+    const productRoot = productRootRef.current;
 
-  const timeline = animateProductState({
-    productRoot,
-    productTarget: product,
+    if (!productRoot || choreographyActive) {
+      return;
+    }
+
+    const timeline = animateProductState({
+      productRoot,
+      productTarget: product,
+      invalidate,
+    });
+
+    return () => {
+      timeline.kill();
+    };
+  }, [
+    product,
+    choreographyActive,
     invalidate,
-  });
-
-  return () => {
-    timeline.kill();
-  };
-}, [product, invalidate]);
+    productRootRef,
+  ]);
 
   useEffect(() => {
     const earPad = earPadRef.current;
@@ -57,7 +80,9 @@ export default function ProductStage({
       return;
     }
 
-    if (acousticRevealActive === revealActiveRef.current) {
+    if (
+      acousticRevealActive === revealActiveRef.current
+    ) {
       return;
     }
 
@@ -77,7 +102,9 @@ export default function ProductStage({
       reveal: acousticRevealActive,
       invalidate,
       onComplete: () => {
-        if (revealTimelineRef.current === timeline) {
+        if (
+          revealTimelineRef.current === timeline
+        ) {
           revealTimelineRef.current = null;
         }
       },
@@ -95,7 +122,10 @@ export default function ProductStage({
 
   return (
     <group ref={productRootRef}>
-      <HeadphoneModel earPadRef={earPadRef} coverRef={coverRef} />
+      <HeadphoneModel
+        earPadRef={earPadRef}
+        coverRef={coverRef}
+      />
     </group>
   );
 }

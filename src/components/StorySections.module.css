@@ -1,0 +1,119 @@
+
+.story {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  pointer-events: none;
+}
+
+.section {
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100vh;
+  padding: clamp(24px, 7vw, 112px);
+}
+
+.content {
+  width: 100%;
+  max-width: 440px;
+  pointer-events: auto;
+}
+
+.left {
+  margin-right: auto;
+}
+
+.right {
+  margin-left: auto;
+}
+
+.center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 20px;
+
+  color: #6ea8ff;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0;
+
+  color: #f4f4f2;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(42px, 5.5vw, 80px);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+}
+
+.description {
+  max-width: 340px;
+  margin-top: 24px;
+
+  color: #9a9aa0;
+  font-family: "Geist", sans-serif;
+  font-size: clamp(14px, 1.1vw, 16px);
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.center .description {
+  margin-inline: auto;
+}
+
+/* Portrait layouts:
+   Keep editorial text compact and away from
+   the primary product viewing region. */
+
+@media (max-aspect-ratio: 3/4) {
+  .section {
+    align-items: flex-start;
+    padding: clamp(20px, 5vw, 36px);
+    padding-top: clamp(28px, 5vh, 52px);
+  }
+
+  .content {
+    max-width: 300px;
+  }
+
+  .left,
+  .right,
+  .center {
+    margin-inline: 0;
+    text-align: left;
+  }
+
+  .eyebrow {
+    margin-bottom: 12px;
+    font-size: 10px;
+  }
+
+  .heading {
+    max-width: 13ch;
+    font-size: clamp(30px, 7vw, 44px);
+  }
+
+  .description {
+    max-width: 260px;
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .center .description {
+    margin-inline: 0;
+  }
+}
+

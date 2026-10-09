@@ -32,10 +32,12 @@ export function animateProductReveal({
       )
     : assembled.cover.position;
 
-  gsap.killTweensOf([earPad.position, cover.position]);
+  gsap.killTweensOf([
+    earPad.position,
+    cover.position,
+  ]);
 
- return gsap
-  .timeline({
+  const timeline = gsap.timeline({
     defaults: {
       duration: PRODUCT_REVEAL.motion.duration,
       ease: PRODUCT_REVEAL.motion.ease,
@@ -43,23 +45,49 @@ export function animateProductReveal({
     },
     onUpdate: invalidate,
     onComplete,
-  })
-    .to(
-      earPad.position,
-      {
-        x: earPadTarget.x,
-        y: earPadTarget.y,
-        z: earPadTarget.z,
-      },
-      0
-    )
-    .to(
-      cover.position,
-      {
-        x: coverTarget.x,
-        y: coverTarget.y,
-        z: coverTarget.z,
-      },
-      0
-    );
+  });
+
+  if (reveal) {
+    timeline
+      .to(
+        earPad.position,
+        {
+          x: earPadTarget.x,
+          y: earPadTarget.y,
+          z: earPadTarget.z,
+        },
+        0
+      )
+      .to(
+        cover.position,
+        {
+          x: coverTarget.x,
+          y: coverTarget.y,
+          z: coverTarget.z,
+        },
+        0.12
+      );
+  } else {
+    timeline
+      .to(
+        cover.position,
+        {
+          x: coverTarget.x,
+          y: coverTarget.y,
+          z: coverTarget.z,
+        },
+        0
+      )
+      .to(
+        earPad.position,
+        {
+          x: earPadTarget.x,
+          y: earPadTarget.y,
+          z: earPadTarget.z,
+        },
+        0.12
+      );
+  }
+
+  return timeline;
 }
