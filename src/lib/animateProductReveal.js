@@ -1,13 +1,78 @@
-import gsap from "gsap";
-import { Vector3 } from "three";
+﻿import gsap from "gsap";
+import { Euler, Quaternion, Vector3 } from "three";
 import { PRODUCT_REVEAL } from "@/config/productReveal";
 
-function getRevealPosition(assembledTransform, localZ) {
-  const offset = new Vector3(0, 0, localZ).applyQuaternion(
-    assembledTransform.quaternion
+function getTargetTransform(
+  assembled,
+  configuration,
+  reveal
+) {
+  if (!reveal) {
+    return {
+      position: assembled.position.clone(),
+      quaternion: assembled.quaternion.clone(),
+    };
+  }
+
+  // Convert the local separation offset into the
+  // part's parent coordinate system.
+  const offset = new Vector3(
+    configuration.localX,
+    configuration.localY,
+    configuration.localZ
+  ).applyQuaternion(assembled.quaternion);
+
+  // Apply a restrained local-space tilt relative
+  // to the original assembled orientation.
+  const localTilt = new Quaternion().setFromEuler(
+    new Euler(
+      configuration.tilt.x,
+      configuration.tilt.y,
+      configuration.tilt.z
+    )
   );
 
-  return assembledTransform.position.clone().add(offset);
+  return {
+    position: assembled.position.clone().add(offset),
+    quaternion: assembled.quaternion
+      .clone()
+      .multiply(localTilt),
+  };
+}
+
+function createPartMotion({
+  part,
+  target,
+  invalidate,
+}) {
+  // Capture the actual current transform.
+  // This allows clean reversal during an
+  // unfinished reveal or restore.
+  const startPosition = part.position.clone();
+  const startQuaternion = part.quaternion.clone();
+
+  const progress = { value: 0 };
+
+  function update() {
+    part.position.lerpVectors(
+      startPosition,
+      target.position,
+      progress.value
+    );
+
+    part.quaternion.slerpQuaternions(
+      startQuaternion,
+      target.quaternion,
+      progress.value
+    );
+
+    invalidate();
+  }
+
+  return {
+    progress,
+    update,
+  };
 }
 
 export function animateProductReveal({
@@ -18,24 +83,29 @@ export function animateProductReveal({
   invalidate,
   onComplete,
 }) {
-  const earPadTarget = reveal
-    ? getRevealPosition(
-        assembled.earPad,
-        PRODUCT_REVEAL.earPad.localZ
-      )
-    : assembled.earPad.position;
+  const earPadTarget = getTargetTransform(
+    assembled.earPad,
+    PRODUCT_REVEAL.earPad,
+    reveal
+  );
 
-  const coverTarget = reveal
-    ? getRevealPosition(
-        assembled.cover,
-        PRODUCT_REVEAL.cover.localZ
-      )
-    : assembled.cover.position;
+  const coverTarget = getTargetTransform(
+    assembled.cover,
+    PRODUCT_REVEAL.cover,
+    reveal
+  );
 
-  gsap.killTweensOf([
-    earPad.position,
-    cover.position,
-  ]);
+  const earPadMotion = createPartMotion({
+    part: earPad,
+    target: earPadTarget,
+    invalidate,
+  });
+
+  const coverMotion = createPartMotion({
+    part: cover,
+    target: coverTarget,
+    invalidate,
+  });
 
   const timeline = gsap.timeline({
     defaults: {
@@ -43,49 +113,58 @@ export function animateProductReveal({
       ease: PRODUCT_REVEAL.motion.ease,
       overwrite: "auto",
     },
-    onUpdate: invalidate,
-    onComplete,
+
+    onComplete: () => {
+      // Ensure exact final transforms after
+      // the completed animation.
+      earPad.position.copy(earPadTarget.position);
+      earPad.quaternion.copy(earPadTarget.quaternion);
+
+      cover.position.copy(coverTarget.position);
+      cover.quaternion.copy(coverTarget.quaternion);
+
+      invalidate();
+      onComplete?.();
+    },
   });
+
+  const stagger = PRODUCT_REVEAL.motion.stagger;
 
   if (reveal) {
     timeline
       .to(
-        earPad.position,
+        earPadMotion.progress,
         {
-          x: earPadTarget.x,
-          y: earPadTarget.y,
-          z: earPadTarget.z,
+          value: 1,
+          onUpdate: earPadMotion.update,
         },
         0
       )
       .to(
-        cover.position,
+        coverMotion.progress,
         {
-          x: coverTarget.x,
-          y: coverTarget.y,
-          z: coverTarget.z,
+          value: 1,
+          onUpdate: coverMotion.update,
         },
-        0.12
+        stagger
       );
   } else {
     timeline
       .to(
-        cover.position,
+        coverMotion.progress,
         {
-          x: coverTarget.x,
-          y: coverTarget.y,
-          z: coverTarget.z,
+          value: 1,
+          onUpdate: coverMotion.update,
         },
         0
       )
       .to(
-        earPad.position,
+        earPadMotion.progress,
         {
-          x: earPadTarget.x,
-          y: earPadTarget.y,
-          z: earPadTarget.z,
+          value: 1,
+          onUpdate: earPadMotion.update,
         },
-        0.12
+        stagger
       );
   }
 

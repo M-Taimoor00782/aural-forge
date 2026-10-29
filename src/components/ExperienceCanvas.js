@@ -1,14 +1,20 @@
-"use client";
+﻿"use client";
 
 import { Canvas } from "@react-three/fiber";
 import ExperienceScene from "./ExperienceScene";
 import { PRODUCT_STATES } from "@/config/productStates";
 
 export default function ExperienceCanvas({
+  familyId,
+  variantId,
   activeProductState,
   acousticRevealActive,
   choreographyActive,
+  familyTransitionActive = false,
   onChoreographyActiveChange,
+  onStageReady,
+  onStageUnavailable,
+  onStageMotionRegistration,
 }) {
   const { camera } = PRODUCT_STATES.neutral;
 
@@ -30,10 +36,20 @@ export default function ExperienceCanvas({
       }}
     >
       <ExperienceScene
+        familyId={familyId}
+        variantId={variantId}
         activeProductState={activeProductState}
         acousticRevealActive={acousticRevealActive}
         choreographyActive={choreographyActive}
-        onChoreographyActiveChange={onChoreographyActiveChange}
+        familyTransitionActive={familyTransitionActive}
+        onChoreographyActiveChange={
+          onChoreographyActiveChange
+        }
+        onStageReady={onStageReady}
+        onStageUnavailable={onStageUnavailable}
+        onStageMotionRegistration={
+          onStageMotionRegistration
+        }
       />
     </Canvas>
   );
