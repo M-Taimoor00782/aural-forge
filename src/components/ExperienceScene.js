@@ -1,4 +1,4 @@
-import {
+﻿import {
   Suspense,
   useEffect,
   useMemo,
@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import { useThree } from "@react-three/fiber";
+
 import {
   Environment,
   Lightformer,
@@ -30,8 +31,11 @@ import { measureHeadphoneBounds } from "@/lib/responsiveComposition";
 
 import CameraStateController from "./CameraStateController";
 import ProductStage from "./ProductStage";
+import EarbudsProductStage from "./EarbudsProductStage";
 import ScrollChoreographyController from "./ScrollChoreographyController";
 import ProductWorldEnvironment from "./ProductWorldEnvironment";
+
+const EARBUDS_FAMILY_ID = "earbuds";
 
 const X_AXIS = new Vector3(1, 0, 0);
 
@@ -52,8 +56,6 @@ function applyHandoffTransform({
 }) {
   const p = Math.max(0, Math.min(1, progress));
 
-  // Exit moves away from the current composition.
-  // Entrance approaches its authored semantic pose.
   const amount = entering ? 1 - p : p;
 
   const offset = entering
@@ -119,8 +121,6 @@ function HeadphoneProductExperience({
     invalidate,
   });
 
-  // Latest semantic state is available to the entrance
-  // animation without repeatedly registering the stage.
   const storyRef = useRef(null);
 
   storyRef.current = {
@@ -141,8 +141,12 @@ function HeadphoneProductExperience({
 
     const motionApi = {
       exit(progress) {
-        if (progress <= 0 || !exitPoseRef.current) {
-          exitPoseRef.current = captureTransform(root);
+        if (
+          progress <= 0 ||
+          !exitPoseRef.current
+        ) {
+          exitPoseRef.current =
+            captureTransform(root);
         }
 
         applyHandoffTransform({
@@ -155,7 +159,10 @@ function HeadphoneProductExperience({
       },
 
       enter(progress) {
-        if (progress <= 0 || !enterPoseRef.current) {
+        if (
+          progress <= 0 ||
+          !enterPoseRef.current
+        ) {
           const {
             activeProductState: stateName,
             viewport: currentViewport,
@@ -174,9 +181,12 @@ function HeadphoneProductExperience({
             position: new Vector3(
               ...product.position
             ),
-            quaternion: new Quaternion().setFromEuler(
-              new Euler(...product.rotation)
-            ),
+
+            quaternion:
+              new Quaternion().setFromEuler(
+                new Euler(...product.rotation)
+              ),
+
             scale: new Vector3(
               product.scale,
               product.scale,
@@ -195,8 +205,6 @@ function HeadphoneProductExperience({
       },
     };
 
-    // Register only after the mounted product group
-    // exists inside the persistent Canvas.
     onStageMotionRegistration?.(
       family.id,
       motionApi
@@ -224,8 +232,6 @@ function HeadphoneProductExperience({
     onStageMotionRegistration,
   ]);
 
-  // Family handoffs take priority over all ordinary
-  // product and camera state tweens.
   const motionOwned =
     choreographyActive || familyTransitionActive;
 
@@ -284,17 +290,57 @@ function HeadphoneEnvironment() {
   );
 }
 
-// Each family owns its own 3D stage and environment.
-// New stages can register without modifying the
-// existing headphone motion implementation.
+// Earbuds initially reuse the existing neutral
+// studio lighting so the black case, interiors,
+// lid and earbuds remain readable.
+//
+// A family-specific lighting design can follow
+// after the actual model is visually reviewed.
+function EarbudsEnvironment() {
+  return (
+    <>
+      <Environment resolution={256} frames={1}>
+        <Lightformer
+          form="rect"
+          intensity={2.8}
+          position={[0, 3, 5]}
+          rotation={[0, Math.PI, 0]}
+          scale={[5, 3, 1]}
+        />
+      </Environment>
+
+      <directionalLight
+        position={[4, 5, 6]}
+        intensity={2.1}
+      />
+
+      <directionalLight
+        position={[-4, 2, -4]}
+        intensity={0.8}
+      />
+    </>
+  );
+}
+
+// Both product families use the same persistent
+// React Three Fiber Canvas.
+//
+// Each family controls its own model stage;
+// neither introduces a second Canvas.
 const PRODUCT_STAGE_COMPONENTS = {
   [DEFAULT_PRODUCT_FAMILY_ID]:
     HeadphoneProductExperience,
+
+  [EARBUDS_FAMILY_ID]:
+    EarbudsProductStage,
 };
 
 const PRODUCT_ENVIRONMENT_COMPONENTS = {
   [DEFAULT_PRODUCT_FAMILY_ID]:
     HeadphoneEnvironment,
+
+  [EARBUDS_FAMILY_ID]:
+    EarbudsEnvironment,
 };
 
 export default function ExperienceScene({
@@ -333,7 +379,9 @@ export default function ExperienceScene({
         variantId={variantId}
       />
 
-      {ActiveEnvironment && <ActiveEnvironment />}
+      {ActiveEnvironment && (
+        <ActiveEnvironment />
+      )}
 
       <Suspense fallback={null}>
         <ActiveProductStage

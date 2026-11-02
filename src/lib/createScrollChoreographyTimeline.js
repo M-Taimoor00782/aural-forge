@@ -1,13 +1,11 @@
-import gsap from "gsap";
+﻿import gsap from "gsap";
 import { Euler, Quaternion, Vector3 } from "three";
 import { resolveChoreographySegment } from "@/config/scrollChoreography";
-
-const LOCAL_X_AXIS = new Vector3(1, 0, 0);
 
 const TRAVEL_PATHS = {
   "hero-to-performance": {
     arc: [-0.08, -0.2, -0.38],
-    tilt: [0, -0.04, -0.1],
+    tilt: [0, 0, 0],
     scalePulse: -0.02,
   },
 
@@ -79,62 +77,6 @@ function samplePath(from, to, offset, progress) {
   );
 }
 
-// Only Hero â†’ Performance receives the forward somersault.
-// It passes through 180 degrees halfway and completes
-// one revolution before the Performance anchor.
-//
-// A full revolution is orientation-equivalent to zero,
-// allowing the authored semantic endpoint to remain exact.
-function getSomersaultAngle(segmentId, progress) {
-  if (segmentId !== "hero-to-performance") {
-    return 0;
-  }
-
-  // One 180-degree inverted moment, with no accumulated
-  // revolutions. The original Performance pose is restored.
-  //
-  // The broad rise, short inverted hold, and gradual
-  // settling phase are all driven by absolute scroll progress.
-
-  const t = clamp(progress, 0, 1);
-
-  const riseEnd = 0.46;
-  const settleStart = 0.56;
-
-  if (t <= riseEnd) {
-    return Math.PI * smoothstep(t / riseEnd);
-  }
-
-  if (t <= settleStart) {
-    return Math.PI;
-  }
-
-  return Math.PI * (
-    1 - smoothstep(
-      (t - settleStart) / (1 - settleStart)
-    )
-  );
-}
-
-function getOrientation(rotation, flipAngle) {
-  const orientation = new Quaternion().setFromEuler(
-    new Euler(...rotation)
-  );
-
-  if (flipAngle !== 0) {
-    const flip = new Quaternion().setFromAxisAngle(
-      LOCAL_X_AXIS,
-      flipAngle
-    );
-
-    // Multiply on the right to rotate around the
-    // headphone's local X axis.
-    orientation.multiply(flip);
-  }
-
-  return orientation;
-}
-
 function getBoundsCorners(bounds) {
   const [minX, minY, minZ] = bounds.min;
   const [maxX, maxY, maxZ] = bounds.max;
@@ -151,6 +93,120 @@ function getBoundsCorners(bounds) {
   ];
 }
 
+/*
+ * Intermediate scroll poses need the same
+ * product/content separation as the endpoint
+ * states in responsiveComposition.js.
+ *
+ * These screen-space regions mirror the
+ * existing responsive editorial composition.
+ */
+function getProductRegion(sectionId, viewport) {
+  const width = Math.max(1, viewport.width);
+  const height = Math.max(1, viewport.height);
+  const aspect = width / height;
+
+  const edgeX = clamp(width * 0.045, 18, 84);
+  const edgeY = clamp(height * 0.045, 18, 60);
+  const gap = clamp(width * 0.042, 26, 68);
+
+  if (aspect <= 0.75) {
+    const contentHeight =
+      sectionId === "configurator"
+        ? 590
+        : sectionId === "hero"
+          ? 375
+          : 260;
+
+    return {
+      left: edgeX,
+      right: width - edgeX,
+      top: Math.min(height * 0.75, contentHeight),
+      bottom: height - edgeY,
+    };
+  }
+
+  const isRightContent =
+    sectionId === "performance" ||
+    sectionId === "detail" ||
+    sectionId === "configurator";
+
+  const contentWidth =
+    sectionId === "configurator" ? 460 : 440;
+
+  if (isRightContent) {
+    // Editorial content on the right:
+    // product receives the left-side lane.
+    return {
+      left: edgeX,
+      right: Math.max(
+        edgeX + 1,
+        width - edgeX - contentWidth - gap
+      ),
+      top: edgeY,
+      bottom: height - edgeY,
+    };
+  }
+
+  // Editorial content on the left:
+  // product receives the right-side lane.
+  return {
+    left: Math.min(
+      width - edgeX - 1,
+      edgeX + contentWidth + gap
+    ),
+    right: width - edgeX,
+    top: edgeY,
+    bottom: height - edgeY,
+  };
+}
+
+function getTransitionRegion(
+  segment,
+  viewport,
+  progress
+) {
+  const outgoing = getProductRegion(
+    segment.fromSectionId,
+    viewport
+  );
+
+  const incoming = getProductRegion(
+    segment.toSectionId,
+    viewport
+  );
+
+  return {
+    left: lerp(
+      outgoing.left,
+      incoming.left,
+      progress
+    ),
+    right: lerp(
+      outgoing.right,
+      incoming.right,
+      progress
+    ),
+    top: lerp(
+      outgoing.top,
+      incoming.top,
+      progress
+    ),
+    bottom: lerp(
+      outgoing.bottom,
+      incoming.bottom,
+      progress
+    ),
+  };
+}
+
+/*
+ * Fit actual rotated 3D geometry into the
+ * content-safe region during scroll movement.
+ *
+ * The model can retain its authored path
+ * whenever that path is already safe.
+ */
 function fitIntermediatePose({
   position,
   orientation,
@@ -160,33 +216,45 @@ function fitIntermediatePose({
   corners,
   viewport,
   progress,
+  regionProgress,
+  segment,
 }) {
   if (!corners || progress <= 0 || progress >= 1) {
     return { position, scale };
   }
 
-  const aspect = Math.max(
-    0.1,
-    viewport.width / Math.max(1, viewport.height)
-  );
-
-  const portraitFactor = clamp(
-    (0.85 - aspect) / 0.39,
-    0,
-    1
-  );
-
-  const safeFrame = 0.82 - 0.14 * portraitFactor;
+  const width = Math.max(1, viewport.width);
+  const height = Math.max(1, viewport.height);
+  const aspect = width / height;
 
   const tanHalfFov = Math.tan(
     (fov * Math.PI) / 360
   );
 
-  // The intermediate framing now accounts for the
-  // actual somersault orientation, not just the
-  // original semantic X/Y/Z rotation.
+  const region = getTransitionRegion(
+    segment,
+    viewport,
+    regionProgress
+  );
+
+  const leftNdc =
+    (2 * region.left) / width - 1;
+
+  const rightNdc =
+    (2 * region.right) / width - 1;
+
+  const topNdc =
+    1 - (2 * region.top) / height;
+
+  const bottomNdc =
+    1 - (2 * region.bottom) / height;
+
+  // Use the actual interpolated orientation,
+  // including the Hero shortest-path correction.
   const rotatedCorners = corners.map((corner) =>
-    new Vector3(...corner).applyQuaternion(orientation)
+    new Vector3(...corner).applyQuaternion(
+      orientation
+    )
   );
 
   function getAllowedPosition(candidateScale) {
@@ -207,39 +275,53 @@ function fitIntermediatePose({
       }
 
       const halfHeight =
-        depth * tanHalfFov * safeFrame;
+        depth * tanHalfFov;
 
-      const halfWidth = halfHeight * aspect;
-
-      const offsetX = corner.x * candidateScale;
-      const offsetY = corner.y * candidateScale;
+      const halfWidth =
+        halfHeight * aspect;
 
       xMin = Math.max(
         xMin,
-        cameraPosition[0] - halfWidth - offsetX
+        cameraPosition[0] +
+          leftNdc * halfWidth -
+          corner.x * candidateScale
       );
 
       xMax = Math.min(
         xMax,
-        cameraPosition[0] + halfWidth - offsetX
+        cameraPosition[0] +
+          rightNdc * halfWidth -
+          corner.x * candidateScale
       );
 
       yMin = Math.max(
         yMin,
-        cameraPosition[1] - halfHeight - offsetY
+        cameraPosition[1] +
+          bottomNdc * halfHeight -
+          corner.y * candidateScale
       );
 
       yMax = Math.min(
         yMax,
-        cameraPosition[1] + halfHeight - offsetY
+        cameraPosition[1] +
+          topNdc * halfHeight -
+          corner.y * candidateScale
       );
     }
 
-    if (xMin > xMax || yMin > yMax) {
+    if (
+      xMin > xMax ||
+      yMin > yMax
+    ) {
       return null;
     }
 
-    return { xMin, xMax, yMin, yMax };
+    return {
+      xMin,
+      xMax,
+      yMin,
+      yMax,
+    };
   }
 
   let safeScale = scale;
@@ -249,7 +331,9 @@ function fitIntermediatePose({
     let low = 0;
     let high = scale;
 
-    for (let i = 0; i < 24; i += 1) {
+    // Reduce scale only when the geometry
+    // cannot otherwise fit beside the content.
+    for (let i = 0; i < 28; i += 1) {
       const middle = (low + high) / 2;
 
       if (getAllowedPosition(middle)) {
@@ -264,6 +348,8 @@ function fitIntermediatePose({
   }
 
   if (!allowed) {
+    // Preserve the timeline if model bounds
+    // or camera geometry are invalid.
     return { position, scale };
   }
 
@@ -310,15 +396,41 @@ export function createScrollChoreographyTimeline({
   };
 
   const aspect =
-    viewport.width / Math.max(1, viewport.height);
+    viewport.width /
+    Math.max(1, viewport.height);
 
   const motionStrength =
-    clamp(Math.sqrt(aspect / 1.2), 0.5, 1) *
-    clamp(viewport.height / 760, 0.75, 1);
+    clamp(
+      Math.sqrt(aspect / 1.2),
+      0.5,
+      1
+    ) *
+    clamp(
+      viewport.height / 760,
+      0.75,
+      1
+    );
 
   const corners = modelBounds
     ? getBoundsCorners(modelBounds)
     : null;
+
+  // Preserve the approved Hero transition.
+  // It must not introduce a forced revolution.
+  const isArrivalTransition =
+    segment.id === "hero-to-performance";
+
+  const arrivalOrientation =
+    new Quaternion().setFromEuler(
+      new Euler(...from.product.rotation)
+    );
+
+  const performanceOrientation =
+    new Quaternion().setFromEuler(
+      new Euler(...to.product.rotation)
+    );
+
+  const orientation = new Quaternion();
 
   const playhead = { progress: 0 };
 
@@ -345,6 +457,7 @@ export function createScrollChoreographyTimeline({
       timing.camera
     );
 
+    // Retain the existing cinematic travel arcs.
     const position = [0, 1, 2].map((axis) =>
       samplePath(
         from.product.position[axis],
@@ -355,7 +468,9 @@ export function createScrollChoreographyTimeline({
     );
 
     const rotationPulse =
-      4 * rotationProgress * (1 - rotationProgress);
+      4 *
+      rotationProgress *
+      (1 - rotationProgress);
 
     const rotation = [0, 1, 2].map(
       (axis) =>
@@ -369,20 +484,26 @@ export function createScrollChoreographyTimeline({
           motionStrength
     );
 
-    // Somersault uses the global segment progress,
-    // making reverse scrolling fully deterministic.
-    const flipAngle = getSomersaultAngle(
-      segment.id,
-      progress
-    );
-
-    const orientation = getOrientation(
-      rotation,
-      flipAngle
-    );
+    if (isArrivalTransition) {
+      // Shortest-path quaternion interpolation.
+      orientation
+        .copy(arrivalOrientation)
+        .slerp(
+          performanceOrientation,
+          rotationProgress
+        );
+    } else {
+      // Preserve original Euler-based rotations
+      // in the remaining scroll transitions.
+      orientation.setFromEuler(
+        new Euler(...rotation)
+      );
+    }
 
     const scalePulse =
-      4 * scaleProgress * (1 - scaleProgress);
+      4 *
+      scaleProgress *
+      (1 - scaleProgress);
 
     const scale =
       lerp(
@@ -390,10 +511,12 @@ export function createScrollChoreographyTimeline({
         to.product.scale,
         scaleProgress
       ) *
-      (1 +
+      (
+        1 +
         path.scalePulse *
           scalePulse *
-          motionStrength);
+          motionStrength
+      );
 
     const cameraPosition = [0, 1, 2].map(
       (axis) =>
@@ -410,6 +533,8 @@ export function createScrollChoreographyTimeline({
       cameraProgress
     );
 
+    // Fit every intermediate product pose
+    // into the corresponding content-safe lane.
     const safePose = fitIntermediatePose({
       position,
       orientation,
@@ -419,16 +544,19 @@ export function createScrollChoreographyTimeline({
       corners,
       viewport,
       progress,
+      regionProgress: positionProgress,
+      segment,
     });
 
-    productRoot.position.set(...safePose.position);
+    productRoot.position.set(
+      ...safePose.position
+    );
 
-    // Apply the combined semantic rotation and
-    // forward local-X somersault.
-    productRoot.quaternion.copy(orientation);
+    productRoot.quaternion.copy(
+      orientation
+    );
 
-    // Preserve the exact authored Euler values at
-    // the two semantic endpoints.
+    // Endpoint rotations stay exact.
     if (progress <= 0) {
       productRoot.rotation.set(
         ...from.product.rotation
@@ -439,9 +567,15 @@ export function createScrollChoreographyTimeline({
       );
     }
 
-    productRoot.scale.setScalar(safePose.scale);
+    productRoot.scale.setScalar(
+      safePose.scale
+    );
 
-    camera.position.set(...cameraPosition);
+    // Keep original camera choreography.
+    camera.position.set(
+      ...cameraPosition
+    );
+
     camera.fov = fov;
     camera.updateProjectionMatrix();
 

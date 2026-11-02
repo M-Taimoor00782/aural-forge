@@ -1,10 +1,10 @@
-
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 
 import HeadphoneModel from "./HeadphoneModel";
+import ProductInspectionController from "./ProductInspectionController";
 
 import { resolveProductState } from "@/config/productStates";
 import { animateProductReveal } from "@/lib/animateProductReveal";
@@ -49,6 +49,8 @@ export default function ProductStage({
     [activeProductState, viewport, modelBounds]
   );
 
+  // Keep GSAP's ownership of the cinematic
+  // product root completely unchanged.
   useEffect(() => {
     const productRoot = productRootRef.current;
 
@@ -72,6 +74,11 @@ export default function ProductStage({
     productRootRef,
   ]);
 
+  // Preserve the existing acoustic reveal.
+  //
+  // Ear-pad and cover refs still point directly
+  // to the original model parts. The inspection
+  // pivot does not replace those references.
   useEffect(() => {
     const earPad = earPadRef.current;
     const cover = coverRef.current;
@@ -120,12 +127,31 @@ export default function ProductStage({
     };
   }, []);
 
+  // Inspection is a separate nested transform.
+  //
+  // During active cinematic choreography or
+  // acoustic disassembly, the inspection system
+  // returns to neutral and gives priority to
+  // the authored product animation.
+  const inspectionEnabled =
+    !choreographyActive &&
+    !acousticRevealActive;
+
   return (
-    <group ref={productRootRef}>
-      <HeadphoneModel
-        earPadRef={earPadRef}
-        coverRef={coverRef}
-      />
+    <group
+      ref={productRootRef}
+      name="AuralForgeCinematicProductRoot"
+    >
+      <ProductInspectionController
+        enabled={inspectionEnabled}
+        maxYaw={0.34}
+        maxPitch={0.19}
+      >
+        <HeadphoneModel
+          earPadRef={earPadRef}
+          coverRef={coverRef}
+        />
+      </ProductInspectionController>
     </group>
   );
 }

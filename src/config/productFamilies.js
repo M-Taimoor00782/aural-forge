@@ -1,14 +1,36 @@
-import {
+﻿import {
   PRODUCT_VARIANTS,
   PRODUCT_MATERIAL_TARGETS,
   DEFAULT_PRODUCT_VARIANT_ID,
 } from "@/config/productVariants";
+
 import {
   EARBUDS_VARIANTS,
   DEFAULT_EARBUDS_VARIANT_ID,
 } from "@/config/earbudsVariants";
 
-export const DEFAULT_PRODUCT_FAMILY_ID = "headphones";
+/*
+ * Aural Forge — Product Family Registry
+ *
+ * Shared source of truth for:
+ * - Product family identity
+ * - GLB asset paths and readiness
+ * - Variant collections
+ * - Product-specific worlds
+ * - Story capabilities
+ * - Family transition profiles
+ *
+ * Locked visual direction:
+ * Deep Charcoal / Midnight foundation
+ * Bright White / Slate Grey typography
+ * Golden Sand / Terracotta accents
+ *
+ * Variant-specific worlds may introduce the
+ * approved light / purple palette separately.
+ */
+
+export const DEFAULT_PRODUCT_FAMILY_ID =
+  "headphones";
 
 export const PRODUCT_FAMILIES = {
   headphones: {
@@ -32,11 +54,11 @@ export const PRODUCT_FAMILIES = {
       backgroundSource: "fixed",
 
       palette: {
-        background: "#0B0B0C",
-        surface: "#151517",
-        text: "#F4F4F2",
-        secondaryText: "#9A9AA0",
-        accent: "#6EA8FF",
+        background: "#0D0D0D",
+        surface: "#1A1621",
+        text: "#F3F3F4",
+        secondaryText: "#7D868C",
+        accent: "#F6B54E",
       },
     },
 
@@ -55,16 +77,13 @@ export const PRODUCT_FAMILIES = {
     id: "earbuds",
     label: "Wireless Earbuds",
     number: "02",
-    status: "planned",
+    status: "ready",
 
-    // Set the real GLB URL when the asset is ready.
     asset: {
-      url: null,
+      url: "/models/earbuds/aural-forge-earbuds.glb",
       preload: "on-demand",
     },
 
-    // Populated from a dedicated Earbuds variant config
-    // once its actual materials and finishes are defined.
     variants: EARBUDS_VARIANTS,
     defaultVariantId: DEFAULT_EARBUDS_VARIANT_ID,
     materialTargets: {},
@@ -73,17 +92,21 @@ export const PRODUCT_FAMILIES = {
       id: "earbuds-finish-world",
       environmentId: "earbuds-studio",
 
-      // Each Earbuds variant will provide a curated
-      // world.palette override, including background.
+      /*
+       * Keep the existing variant-driven
+       * background architecture.
+       *
+       * The selected Earbuds variant may
+       * provide an alternate curated palette.
+       */
       backgroundSource: "variant",
 
-      // Temporary fallback, not the approved final world.
       palette: {
-        background: "#0B0B0C",
-        surface: "#151517",
-        text: "#F4F4F2",
-        secondaryText: "#9A9AA0",
-        accent: "#6EA8FF",
+        background: "#0D0D0D",
+        surface: "#1A1621",
+        text: "#F3F3F4",
+        secondaryText: "#7D868C",
+        accent: "#C3783A",
       },
     },
 
@@ -98,6 +121,13 @@ export const PRODUCT_FAMILIES = {
     },
   },
 
+  /*
+   * Third product family is reserved.
+   *
+   * Do not activate Smartwatch until its
+   * real GLB, variant configuration, and
+   * product experience are implemented.
+   */
   "product-03": {
     id: "product-03",
     label: "Product 03",
@@ -119,11 +149,11 @@ export const PRODUCT_FAMILIES = {
       backgroundSource: "fixed",
 
       palette: {
-        background: "#0B0B0C",
-        surface: "#151517",
-        text: "#F4F4F2",
-        secondaryText: "#9A9AA0",
-        accent: "#6EA8FF",
+        background: "#0D0D0D",
+        surface: "#1A1621",
+        text: "#F3F3F4",
+        secondaryText: "#7D868C",
+        accent: "#F6B54E",
       },
     },
 
@@ -142,7 +172,9 @@ export const PRODUCT_FAMILIES = {
 export function getProductFamily(familyId) {
   return (
     PRODUCT_FAMILIES[familyId] ??
-    PRODUCT_FAMILIES[DEFAULT_PRODUCT_FAMILY_ID]
+    PRODUCT_FAMILIES[
+      DEFAULT_PRODUCT_FAMILY_ID
+    ]
   );
 }
 
@@ -154,11 +186,13 @@ export function getProductFamilyVariant(
 
   return (
     family.variants.find(
-      (variant) => variant.id === variantId
+      (variant) =>
+        variant.id === variantId
     ) ??
     family.variants.find(
       (variant) =>
-        variant.id === family.defaultVariantId
+        variant.id ===
+        family.defaultVariantId
     ) ??
     null
   );
@@ -168,20 +202,34 @@ export function getProductFamilyWorld(
   familyId,
   variantId
 ) {
-  const family = getProductFamily(familyId);
+  const family = getProductFamily(
+    familyId
+  );
+
   const variant = getProductFamilyVariant(
     familyId,
     variantId
   );
 
+  /*
+   * Fixed worlds always use the family palette.
+   *
+   * Variant worlds may override individual
+   * properties while inheriting the remaining
+   * family defaults.
+   */
   const variantPalette =
-    family.world.backgroundSource === "variant"
+    family.world.backgroundSource ===
+    "variant"
       ? variant?.world?.palette ?? {}
       : {};
 
   return {
     id: family.world.id,
-    environmentId: family.world.environmentId,
+
+    environmentId:
+      family.world.environmentId,
+
     palette: {
       ...family.world.palette,
       ...variantPalette,
@@ -190,15 +238,20 @@ export function getProductFamilyWorld(
 }
 
 export function getReadyProductFamilies() {
-  return Object.values(PRODUCT_FAMILIES).filter(
+  return Object.values(
+    PRODUCT_FAMILIES
+  ).filter(
     (family) =>
       family.status === "ready" &&
       Boolean(family.asset.url)
   );
 }
 
-export function isProductFamilyReady(familyId) {
-  const family = PRODUCT_FAMILIES[familyId];
+export function isProductFamilyReady(
+  familyId
+) {
+  const family =
+    PRODUCT_FAMILIES[familyId];
 
   return Boolean(
     family &&

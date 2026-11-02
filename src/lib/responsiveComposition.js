@@ -1,22 +1,18 @@
+﻿import {
+  Box3,
+  Euler,
+  Quaternion,
+  Vector3,
+} from "three";
 
-import { Box3, Euler, Quaternion, Vector3 } from "three";
 import { PRODUCT_REVEAL } from "@/config/productReveal";
 
 const DESIGN_ASPECT = 1.6;
-const SAFE_FRAME = 0.82;
+const MAX_TEXT_WIDTH = 440;
+const MAX_CONFIGURATOR_WIDTH = 460;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
-}
-
-function smoothstep(start, end, value) {
-  const t = clamp(
-    (value - start) / (end - start),
-    0,
-    1
-  );
-
-  return t * t * (3 - 2 * t);
 }
 
 function getBoxCorners(bounds) {
@@ -52,25 +48,27 @@ export function measureHeadphoneBounds(scene) {
   ];
 
   for (const partConfig of revealParts) {
-    const part = scene.getObjectByName(partConfig.name);
+    const part = scene.getObjectByName(
+      partConfig.name
+    );
 
-    if (!part) {
-      continue;
-    }
+    if (!part) continue;
 
     const offset = new Vector3(
       0,
       0,
       partConfig.localZ
     ).applyQuaternion(
-      part.getWorldQuaternion(new Quaternion())
+      part.getWorldQuaternion(
+        new Quaternion()
+      )
     );
 
-    const revealedBounds = new Box3()
-      .setFromObject(part)
-      .translate(offset);
-
-    bounds.union(revealedBounds);
+    bounds.union(
+      new Box3()
+        .setFromObject(part)
+        .translate(offset)
+    );
   }
 
   return {
@@ -79,24 +77,268 @@ export function measureHeadphoneBounds(scene) {
   };
 }
 
+// Preserve the current authored product states.
+//
+// Hero, Reveal and Finale place text on the left.
+// Performance and Detail place text on the right.
+// The neutral pose is also used by Configurator,
+// whose larger right-side UI needs extra clearance.
+function getCompositionIntent(product) {
+  const x = product.position[0];
+  const yaw = product.rotation[1];
+
+  if (
+    Math.abs(x) < 0.2 &&
+    Math.abs(yaw) < 0.06
+  ) {
+    return {
+      productSide: "left",
+      configurator: true,
+      hero: false,
+    };
+  }
+
+  if (x < -0.25) {
+    return {
+      productSide: "left",
+      configurator: false,
+      hero: false,
+    };
+  }
+
+  if (
+    Math.abs(x) < 0.25 &&
+    yaw < 0
+  ) {
+    return {
+      productSide: "right",
+      configurator: false,
+      hero: true,
+    };
+  }
+
+  return {
+    productSide: "right",
+    configurator: false,
+    hero: false,
+  };
+}
+
+function getSafeScreenRegion(
+  viewport,
+  intent
+) {
+  const width = Math.max(
+    1,
+    viewport.width
+  );
+
+  const height = Math.max(
+    1,
+    viewport.height
+  );
+
+  const aspect = width / height;
+
+  const edgeX = clamp(
+    width * 0.045,
+    18,
+    84
+  );
+
+  const edgeY = clamp(
+    height * 0.045,
+    18,
+    60
+  );
+
+  const gap = clamp(
+    width * 0.042,
+    26,
+    68
+  );
+
+  // Match the current portrait CSS breakpoint.
+  // Text is anchored above the product, so reserve
+  // vertical space instead of forcing side-by-side
+  // composition on a narrow screen.
+  if (aspect <= 0.75) {
+    const estimatedContentHeight =
+      intent.configurator
+        ? 590
+        : intent.hero
+          ? 375
+          : 260;
+
+    return {
+      left: edgeX,
+      right: width - edgeX,
+
+      top: Math.min(
+        height * 0.75,
+        estimatedContentHeight
+      ),
+
+      bottom: height - edgeY,
+      vertical: true,
+    };
+  }
+
+  // On wider screens reserve a real horizontal
+  // lane for editorial text and product controls.
+  const textWidth = intent.configurator
+    ? MAX_CONFIGURATOR_WIDTH
+    : MAX_TEXT_WIDTH;
+
+  if (intent.productSide === "left") {
+    return {
+      left: edgeX,
+
+      right: Math.max(
+        edgeX + 1,
+        width -
+          edgeX -
+          textWidth -
+          gap
+      ),
+
+      top: edgeY,
+      bottom: height - edgeY,
+      vertical: false,
+    };
+  }
+
+  return {
+    left: Math.min(
+      width - edgeX - 1,
+      edgeX + textWidth + gap
+    ),
+
+    right: width - edgeX,
+    top: edgeY,
+    bottom: height - edgeY,
+    vertical: false,
+  };
+}
+
+// Fit the entire rotated 3D bounding box inside
+// the product's screen-space region.
+//
+// This solves a different problem from the old
+// viewport-only safe-frame calculation: a model
+// can fit on screen yet overlap the actual text.
+function getAllowedRootPosition({
+  scale,
+  corners,
+  camera,
+  aspect,
+  viewport,
+  region,
+  productZ,
+}) {
+  const tanHalfFov = Math.tan(
+    (camera.fov * Math.PI) / 360
+  );
+
+  const leftNdc =
+    (2 * region.left) / viewport.width - 1;
+
+  const rightNdc =
+    (2 * region.right) / viewport.width - 1;
+
+  const topNdc =
+    1 -
+    (2 * region.top) / viewport.height;
+
+  const bottomNdc =
+    1 -
+    (2 * region.bottom) / viewport.height;
+
+  let xMin = -Infinity;
+  let xMax = Infinity;
+  let yMin = -Infinity;
+  let yMax = Infinity;
+
+  for (const corner of corners) {
+    const depth =
+      camera.position[2] -
+      productZ -
+      corner.z * scale;
+
+    if (depth <= 0.05) {
+      return null;
+    }
+
+    const halfHeight =
+      depth * tanHalfFov;
+
+    const halfWidth =
+      halfHeight * aspect;
+
+    xMin = Math.max(
+      xMin,
+      camera.position[0] +
+        leftNdc * halfWidth -
+        corner.x * scale
+    );
+
+    xMax = Math.min(
+      xMax,
+      camera.position[0] +
+        rightNdc * halfWidth -
+        corner.x * scale
+    );
+
+    yMin = Math.max(
+      yMin,
+      camera.position[1] +
+        bottomNdc * halfHeight -
+        corner.y * scale
+    );
+
+    yMax = Math.min(
+      yMax,
+      camera.position[1] +
+        topNdc * halfHeight -
+        corner.y * scale
+    );
+  }
+
+  if (
+    xMin > xMax ||
+    yMin > yMax
+  ) {
+    return null;
+  }
+
+  return {
+    xMin,
+    xMax,
+    yMin,
+    yMax,
+  };
+}
+
 export function composeResponsiveProductState(
   state,
   { viewport, modelBounds }
 ) {
-  const width = Math.max(1, viewport.width);
-  const height = Math.max(1, viewport.height);
+  const width = Math.max(
+    1,
+    viewport.width
+  );
+
+  const height = Math.max(
+    1,
+    viewport.height
+  );
+
   const aspect = width / height;
 
-  const { product, camera: baseCamera } = state;
-
-  // Smoothly activate extra composition protection
-  // only as the viewport becomes narrow and tall.
-  // This is aspect-based, not device-based.
-  const portraitWeight = smoothstep(
-    0.72,
-    0.5,
-    aspect
-  );
+  const {
+    product,
+    camera: baseCamera,
+  } = state;
 
   const narrowness = clamp(
     (1.55 - aspect) / 1.1,
@@ -110,22 +352,8 @@ export function composeResponsiveProductState(
     1
   );
 
-  // Shorter portrait viewports receive slightly
-  // stronger safe-frame protection.
-  const shortPortrait = clamp(
-    (820 - height) / 320,
-    0,
-    1
-  );
-
-  const safeFrame = clamp(
-    SAFE_FRAME -
-      portraitWeight *
-        (0.09 + shortPortrait * 0.025),
-    0.69,
-    SAFE_FRAME
-  );
-
+  // Preserve the existing responsive
+  // camera-distance and FOV adjustments.
   const camera = {
     position: [
       baseCamera.position[0],
@@ -134,6 +362,7 @@ export function composeResponsiveProductState(
         0.75 * narrowness +
         0.2 * shortness,
     ],
+
     fov: clamp(
       baseCamera.fov +
         8 * narrowness +
@@ -147,126 +376,95 @@ export function composeResponsiveProductState(
     ...product.rotation
   );
 
-  const center = new Vector3(
-    (modelBounds.min[0] + modelBounds.max[0]) / 2,
-    (modelBounds.min[1] + modelBounds.max[1]) / 2,
-    (modelBounds.min[2] + modelBounds.max[2]) / 2
-  ).applyEuler(rotation);
-
-  const rotatedCorners = getBoxCorners(
+  const corners = getBoxCorners(
     modelBounds
   ).map((corner) =>
-    new Vector3(...corner).applyEuler(rotation)
+    new Vector3(
+      ...corner
+    ).applyEuler(rotation)
   );
 
-  const tanHalfFov = Math.tan(
-    (camera.fov * Math.PI) / 360
+  const center = new Vector3(
+    (
+      modelBounds.min[0] +
+      modelBounds.max[0]
+    ) / 2,
+
+    (
+      modelBounds.min[1] +
+      modelBounds.max[1]
+    ) / 2,
+
+    (
+      modelBounds.min[2] +
+      modelBounds.max[2]
+    ) / 2
+  ).applyEuler(rotation);
+
+  const intent = getCompositionIntent(
+    product
   );
 
-  function getAllowedPosition(scale) {
-    let xMin = -Infinity;
-    let xMax = Infinity;
-    let yMin = -Infinity;
-    let yMax = Infinity;
+  const region = getSafeScreenRegion(
+    { width, height },
+    intent
+  );
 
-    for (const corner of rotatedCorners) {
-      const worldZ =
-        product.position[2] +
-        corner.z * scale;
-
-      const depth =
-        camera.position[2] - worldZ;
-
-      if (depth <= 0.05) {
-        return null;
-      }
-
-      const halfHeight =
-        depth * tanHalfFov * safeFrame;
-
-      const halfWidth =
-        halfHeight * aspect;
-
-      const offsetX = corner.x * scale;
-      const offsetY = corner.y * scale;
-
-      xMin = Math.max(
-        xMin,
-        camera.position[0] -
-          halfWidth -
-          offsetX
-      );
-
-      xMax = Math.min(
-        xMax,
-        camera.position[0] +
-          halfWidth -
-          offsetX
-      );
-
-      yMin = Math.max(
-        yMin,
-        camera.position[1] -
-          halfHeight -
-          offsetY
-      );
-
-      yMax = Math.min(
-        yMax,
-        camera.position[1] +
-          halfHeight -
-          offsetY
-      );
-    }
-
-    if (xMin > xMax || yMin > yMax) {
-      return null;
-    }
-
-    return {
-      xMin,
-      xMax,
-      yMin,
-      yMax,
-    };
-  }
-
-  const baseScaleFactor = clamp(
+  // Preserve the original general scale behavior.
+  // The safe-region fit below adds the new
+  // content-aware protection.
+  const scaleFactor = clamp(
     Math.sqrt(
-      Math.min(1, aspect / DESIGN_ASPECT)
+      Math.min(
+        1,
+        aspect / DESIGN_ASPECT
+      )
     ) *
       Math.sqrt(
-        Math.min(1, height / 800)
+        Math.min(
+          1,
+          height / 800
+        )
       ),
     0.5,
     1
   );
 
-  // Extra scale protection for narrow portraits.
-  // Zero effect on desktop and ordinary tablets.
-  const portraitScaleFactor = clamp(
-    1 -
-      portraitWeight *
-        (0.08 + shortPortrait * 0.025),
-    0.85,
-    1
-  );
-
   let scale =
-    product.scale *
-    baseScaleFactor *
-    portraitScaleFactor;
+    product.scale * scaleFactor;
 
-  let allowed = getAllowedPosition(scale);
+  const fit = (candidateScale) =>
+    getAllowedRootPosition({
+      scale: candidateScale,
+      corners,
+      camera,
+      aspect,
+      viewport: {
+        width,
+        height,
+      },
+      region,
+      productZ: product.position[2],
+    });
 
+  let allowed = fit(scale);
+
+  // Scale down only when the true projected
+  // geometry cannot fit inside its dedicated
+  // region beside or below the content.
   if (!allowed) {
     let low = 0;
     let high = scale;
 
-    for (let i = 0; i < 24; i += 1) {
-      const middle = (low + high) / 2;
+    for (
+      let i = 0;
+      i < 28;
+      i += 1
+    ) {
+      const middle =
+        (low + high) / 2;
 
-      if (getAllowedPosition(middle)) {
+      if (fit(middle)) {
         low = middle;
       } else {
         high = middle;
@@ -274,16 +472,35 @@ export function composeResponsiveProductState(
     }
 
     scale = low;
-    allowed = getAllowedPosition(scale);
+    allowed = fit(scale);
   }
 
   if (!allowed) {
-    return state;
+    // Defensive fallback for malformed bounds.
+    return {
+      product: {
+        ...product,
+      },
+
+      camera,
+    };
   }
 
-  const authoredTanHalfFov = Math.tan(
-    (baseCamera.fov * Math.PI) / 360
+  const tanHalfFov = Math.tan(
+    (camera.fov * Math.PI) / 360
   );
+
+  const depth = Math.max(
+    0.1,
+    camera.position[2] -
+      product.position[2] -
+      center.z * scale
+  );
+
+  // Aim for the center of the free product lane,
+  // rather than the center of the full viewport.
+  const targetPixelX =
+    (region.left + region.right) / 2;
 
   const authoredDepth = Math.max(
     0.1,
@@ -292,74 +509,59 @@ export function composeResponsiveProductState(
       center.z * product.scale
   );
 
-  const authoredX =
-    product.position[0] +
-    center.x * product.scale -
-    baseCamera.position[0];
-
-  const authoredY =
-    product.position[1] +
-    center.y * product.scale -
-    baseCamera.position[1];
-
-  const horizontalTravelFactor = clamp(
-    aspect / DESIGN_ASPECT,
-    0.2,
-    1
+  const authoredTan = Math.tan(
+    (baseCamera.fov * Math.PI) / 360
   );
 
-  const desiredNdcX = clamp(
-    (authoredX /
-      (authoredDepth *
-        authoredTanHalfFov *
-        DESIGN_ASPECT)) *
-      horizontalTravelFactor,
-    -0.45,
-    0.45
-  );
-
-  // Original authored vertical composition.
+  // Preserve authored vertical placement
+  // on desktop/laptop.
   const authoredNdcY = clamp(
-    authoredY /
-      (authoredDepth * authoredTanHalfFov) -
+    (
+      product.position[1] +
+      center.y * product.scale -
+      baseCamera.position[1]
+    ) /
+      (
+        authoredDepth *
+        authoredTan
+      ) -
       0.06,
     -0.18,
     0.08
   );
 
-  // Mobile portrait target: keep the visible center
-  // consistently slightly below screen center.
-  // Shorter portrait frames use a little more
-  // downward bias for headband clearance.
-  const portraitNdcY =
-    -0.08 - shortPortrait * 0.025;
-
-  // Smoothly converge mobile semantic states toward
-  // one stable vertical composition. Desktop and
-  // tablet retain their original authored framing.
-  const desiredNdcY =
-    authoredNdcY * (1 - portraitWeight) +
-    portraitNdcY * portraitWeight;
-
-  const composedDepth = Math.max(
-    0.1,
-    camera.position[2] -
-      product.position[2] -
-      center.z * scale
-  );
+  // In portrait, place the product in the
+  // remaining region beneath the text.
+  const targetPixelY = region.vertical
+    ? (
+        region.top +
+        region.bottom
+      ) / 2
+    : (
+        height *
+        (1 - authoredNdcY)
+      ) / 2;
 
   const desiredX =
     camera.position[0] +
-    desiredNdcX *
-      composedDepth *
+    (
+      (2 * targetPixelX) /
+        width -
+      1
+    ) *
+      depth *
       tanHalfFov *
       aspect -
     center.x * scale;
 
   const desiredY =
     camera.position[1] +
-    desiredNdcY *
-      composedDepth *
+    (
+      1 -
+      (2 * targetPixelY) /
+        height
+    ) *
+      depth *
       tanHalfFov -
     center.y * scale;
 
@@ -371,16 +573,20 @@ export function composeResponsiveProductState(
           allowed.xMin,
           allowed.xMax
         ),
+
         clamp(
           desiredY,
           allowed.yMin,
           allowed.yMax
         ),
+
         product.position[2],
       ],
+
       rotation: product.rotation,
       scale,
     },
+
     camera,
   };
 }

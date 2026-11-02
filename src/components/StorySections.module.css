@@ -1,3 +1,19 @@
+﻿/*
+ * AURAL FORGE — STORY SECTIONS
+ *
+ * Locked typography:
+ * Headings — Saira
+ * Body — Montserrat
+ * Buttons — Inter
+ *
+ * Locked visual direction:
+ * Deep Charcoal / Midnight surfaces
+ * Bright White / muted cool-grey text
+ * Golden Sand accents
+ *
+ * This file retains the established
+ * responsive product/content composition.
+ */
 
 .story {
   position: relative;
@@ -6,28 +22,59 @@
   pointer-events: none;
 }
 
+/* -----------------------------------------
+   Section layout
+----------------------------------------- */
+
 .section {
   position: relative;
+
   display: flex;
   align-items: center;
+
   box-sizing: border-box;
+
   width: 100%;
+
   min-height: 100vh;
-  padding: clamp(24px, 7vw, 112px);
+  min-height: 100svh;
+
+  padding-block:
+    clamp(48px, 7vh, 96px);
+
+  padding-inline:
+    clamp(24px, 7vw, 112px);
+
+  gap: clamp(24px, 4vw, 64px);
+
+  pointer-events: none;
 }
 
+/* -----------------------------------------
+   Editorial content lanes
+----------------------------------------- */
+
 .content {
-  width: 100%;
-  max-width: 440px;
+  position: relative;
+  z-index: 2;
+
+  flex: 0 1 420px;
+
+  width: min(100%, 420px);
+  max-width: 420px;
+  min-width: 0;
+
   pointer-events: auto;
 }
 
 .left {
+  margin-left: 0;
   margin-right: auto;
 }
 
 .right {
   margin-left: auto;
+  margin-right: 0;
 }
 
 .center {
@@ -35,57 +82,312 @@
   text-align: center;
 }
 
+/* -----------------------------------------
+   Typography
+----------------------------------------- */
+
 .eyebrow {
   display: block;
+
   margin-bottom: 20px;
 
-  color: #6ea8ff;
-  font-family: "Geist Mono", monospace;
+  color:
+    var(
+      --af-accent,
+      #F6B54E
+    );
+
+  font-family:
+    var(--font-af-body),
+    Montserrat,
+    sans-serif;
+
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
+  font-weight: 600;
+
+  line-height: 1.5;
+  letter-spacing: 0.17em;
+
   text-transform: uppercase;
 }
 
 .heading {
   margin: 0;
 
-  color: #f4f4f2;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: clamp(42px, 5.5vw, 80px);
+  max-width: 100%;
+
+  color:
+    var(
+      --af-text-primary,
+      #F3F3F4
+    );
+
+  font-family:
+    var(--font-af-heading),
+    Saira,
+    sans-serif;
+
+  font-size: clamp(
+    42px,
+    5.5vw,
+    80px
+  );
+
   font-weight: 600;
-  line-height: 1.04;
-  letter-spacing: -0.055em;
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+
+  text-wrap: balance;
 }
 
 .description {
   max-width: 340px;
-  margin-top: 24px;
 
-  color: #9a9aa0;
-  font-family: "Geist", sans-serif;
-  font-size: clamp(14px, 1.1vw, 16px);
+  margin-top: 24px;
+  margin-bottom: 0;
+
+  color:
+    var(
+      --af-text-secondary,
+      #ADB3BA
+    );
+
+  font-family:
+    var(--font-af-body),
+    Montserrat,
+    sans-serif;
+
+  font-size: clamp(
+    14px,
+    1.1vw,
+    16px
+  );
+
   font-weight: 400;
-  line-height: 1.7;
+
+  line-height: 1.75;
+  letter-spacing: -0.008em;
+
+  text-wrap: pretty;
 }
 
 .center .description {
   margin-inline: auto;
 }
 
-/* Portrait layouts:
-   Keep editorial text compact and away from
-   the primary product viewing region. */
+/* -----------------------------------------
+   Existing product / editorial composition
 
-@media (max-aspect-ratio: 3/4) {
+   Preserve the established relationships
+   between text and the staged 3D product.
+----------------------------------------- */
+
+.section[id="hero"] > .content,
+.section[id="acoustic-reveal"] > .content,
+.section[id="finale"] > .content {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.section[id="performance"] > .content,
+.section[id="detail"] > .content {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* -----------------------------------------
+   Configurator composition
+
+   The configurator contains two siblings:
+
+   1. Editorial copy
+   2. Family / variant controls
+
+   Both remain inside the right-side lane.
+----------------------------------------- */
+
+.section[id="configurator"] {
+  flex-direction: column;
+
+  align-items: flex-end;
+  justify-content: center;
+
+  min-height: max(
+    100svh,
+    840px
+  );
+
+  gap: clamp(
+    16px,
+    2.4vh,
+    28px
+  );
+}
+
+.section[id="configurator"] > .content {
+  flex: 0 0 auto;
+
+  width: min(100%, 420px);
+  max-width: 420px;
+
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.section[id="configurator"]
+  > .content
+  .description {
+  margin-top: 16px;
+  max-width: 320px;
+}
+
+.section[id="configurator"] > div:last-child {
+  flex: 0 0 auto;
+
+  align-self: flex-end;
+
+  max-width: 420px;
+  min-width: 0;
+
+  margin-left: auto;
+  margin-right: 0;
+
+  pointer-events: auto;
+}
+
+/* -----------------------------------------
+   Laptop / compact landscape tablet
+----------------------------------------- */
+
+@media (max-width: 1100px) and (min-aspect-ratio: 3/4) {
   .section {
-    align-items: flex-start;
-    padding: clamp(20px, 5vw, 36px);
-    padding-top: clamp(28px, 5vh, 52px);
+    padding-inline:
+      clamp(22px, 5.2vw, 58px);
+
+    gap: clamp(
+      20px,
+      3vw,
+      36px
+    );
   }
 
   .content {
-    max-width: 300px;
+    flex-basis: min(
+      39vw,
+      420px
+    );
+
+    width: min(
+      39vw,
+      420px
+    );
+
+    max-width: min(
+      39vw,
+      420px
+    );
+  }
+
+  .heading {
+    font-size: clamp(
+      39px,
+      5.1vw,
+      69px
+    );
+  }
+
+  .description {
+    max-width: 310px;
+
+    font-size: clamp(
+      13px,
+      1.35vw,
+      15px
+    );
+
+    line-height: 1.7;
+  }
+
+  .section[id="configurator"] > .content,
+  .section[id="configurator"] > div:last-child {
+    width: min(
+      42vw,
+      420px
+    );
+
+    max-width: min(
+      42vw,
+      420px
+    );
+  }
+
+  .section[id="configurator"] {
+    min-height: max(
+      100svh,
+      880px
+    );
+  }
+}
+
+/* -----------------------------------------
+   Short landscape viewports
+----------------------------------------- */
+
+@media (max-height: 680px) and (min-aspect-ratio: 3/4) {
+  .section {
+    min-height: max(
+      100svh,
+      660px
+    );
+
+    padding-block: 34px;
+  }
+
+  .section[id="configurator"] {
+    min-height: max(
+      100svh,
+      920px
+    );
+  }
+}
+
+/* -----------------------------------------
+   Portrait layouts
+
+   Editorial content remains above the
+   primary 3D viewing area.
+----------------------------------------- */
+
+@media (max-aspect-ratio: 3/4) {
+  .section {
+    flex-direction: column;
+
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    gap: 0;
+
+    min-height: 100svh;
+
+    padding-inline:
+      clamp(20px, 5vw, 36px);
+
+    padding-top:
+      clamp(28px, 5vh, 52px);
+
+    padding-bottom:
+      clamp(52px, 9vh, 110px);
+  }
+
+  .content {
+    flex: 0 0 auto;
+
+    width: min(
+      100%,
+      320px
+    );
+
+    max-width: 320px;
   }
 
   .left,
@@ -97,23 +399,132 @@
 
   .eyebrow {
     margin-bottom: 12px;
+
     font-size: 10px;
+    line-height: 1.4;
+    letter-spacing: 0.15em;
   }
 
   .heading {
     max-width: 13ch;
-    font-size: clamp(30px, 7vw, 44px);
+
+    font-size: clamp(
+      32px,
+      7vw,
+      44px
+    );
+
+    line-height: 1.08;
+    letter-spacing: -0.042em;
   }
 
   .description {
-    max-width: 260px;
+    max-width: 270px;
+
     margin-top: 12px;
+
     font-size: 13px;
-    line-height: 1.55;
+    line-height: 1.6;
   }
 
   .center .description {
     margin-inline: 0;
   }
+
+  .section[id="hero"] > .content,
+  .section[id="acoustic-reveal"] > .content,
+  .section[id="finale"] > .content,
+  .section[id="performance"] > .content,
+  .section[id="detail"] > .content {
+    margin-inline: 0;
+  }
+
+  /* Hero family selector */
+
+  .section[id="hero"]
+    > .content
+    > div:last-child {
+    margin-top: 16px !important;
+  }
+
+  /* Mobile configurator stack */
+
+  .section[id="configurator"] {
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    min-height: max(
+      100svh,
+      980px
+    );
+
+    gap: 22px;
+  }
+
+  .section[id="configurator"] > .content {
+    flex: 0 0 auto;
+
+    width: min(
+      100%,
+      320px
+    );
+
+    max-width: 320px;
+
+    margin-inline: 0;
+  }
+
+  .section[id="configurator"]
+    > .content
+    .description {
+    max-width: 270px;
+    margin-top: 12px;
+  }
+
+  .section[id="configurator"] > div:last-child {
+    align-self: flex-start;
+
+    width: min(
+      100%,
+      460px
+    ) !important;
+
+    max-width: 100%;
+
+    margin-inline: 0;
+
+    pointer-events: auto;
+  }
 }
 
+/* -----------------------------------------
+   Very narrow phones
+----------------------------------------- */
+
+@media (max-width: 380px) {
+  .section {
+    padding-inline: 18px;
+  }
+
+  .content {
+    width: min(
+      100%,
+      300px
+    );
+
+    max-width: 300px;
+  }
+
+  .heading {
+    font-size: clamp(
+      30px,
+      8.5vw,
+      38px
+    );
+  }
+
+  .description {
+    max-width: 255px;
+    font-size: 12.5px;
+  }
+}

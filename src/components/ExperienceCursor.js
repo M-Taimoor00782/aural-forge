@@ -1,485 +1,631 @@
 ﻿"use client";
 
 import { useEffect, useRef } from "react";
-import gsap from "gsap";
 
-const INTERACTIVE_SELECTOR = [
+const ROOT_CLASS = "af-custom-cursor-active";
+
+const SELECTABLE = [
   "a[href]",
-  "button:not(:disabled)",
-  '[role="button"]',
-  '[role="link"]',
-  '[role="slider"]',
+  "button",
   "summary",
-  "label[for]",
-  '[data-af-cursor="interactive"]',
-].join(", ");
+  "select",
+  "[role='button']",
+  "[role='link']",
+  "[role='tab']",
+  "[data-af-cursor='interactive']",
+].join(",");
 
-const NATIVE_CURSOR_SELECTOR = [
-  "input",
+const EDITABLE = [
+  "input:not([type='button']):not([type='submit']):not([type='reset'])",
   "textarea",
   "select",
-  '[contenteditable="true"]',
-].join(", ");
+  "[contenteditable='true']",
+].join(",");
 
-const CURSOR_EVENT = "auralforge:cursor-state";
+function setXY(element, x, y, centered = false) {
+  if (!element) return;
+
+  element.style.transform = centered
+    ? `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
+    : `translate3d(${x}px, ${y}px, 0)`;
+}
 
 export default function ExperienceCursor() {
-  const cursorRef = useRef(null);
+  const rootRef = useRef(null);
+  const dotRef = useRef(null);
+  const ringRef = useRef(null);
+  const arrowRef = useRef(null);
+  const labelRef = useRef(null);
 
   useEffect(() => {
-    const cursor = cursorRef.current;
+    const root = rootRef.current;
+    const dot = dotRef.current;
+    const ring = ringRef.current;
+    const arrow = arrowRef.current;
+    const label = labelRef.current;
 
-    if (!cursor) return;
+    if (!root || !dot || !ring || !arrow || !label) {
+      return;
+    }
 
-    const root = document.documentElement;
-
-    const pointerMedia = window.matchMedia(
+    const finePointer = window.matchMedia(
       "(hover: hover) and (pointer: fine)"
     );
 
-    const motionMedia = window.matchMedia(
+    const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     );
 
+    const cursorCss = document.createElement("style");
+
+    cursorCss.dataset.auralForgeCursor = "true";
+
+    cursorCss.textContent = `
+      html.${ROOT_CLASS},
+      html.${ROOT_CLASS} body,
+      html.${ROOT_CLASS} * {
+        cursor: none !important;
+      }
+
+      html.${ROOT_CLASS} input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+      html.${ROOT_CLASS} textarea,
+      html.${ROOT_CLASS} select,
+      html.${ROOT_CLASS} [contenteditable="true"] {
+        cursor: text !important;
+      }
+    `;
+
+    document.head.appendChild(cursorCss);
+
+    const point = { x: 0, y: 0 };
+    const ringPosition = { x: 0, y: 0 };
+    const arrowPosition = { x: 0, y: 0 };
+
     let enabled = false;
-    let positioned = false;
-    let pressed = false;
-    let forcedMode = null;
+    let inside = false;
+    let initialized = false;
+    let isEditable = false;
+    let isSelectable = false;
+    let isPressed = false;
+    let inspecting = false;
 
-    let lastX = 0;
-    let lastY = 0;
+    let frame = 0;
+    let previousTime = 0;
 
-    gsap.set(cursor, {
-      xPercent: -50,
-      yPercent: -50,
-    });
-
-    const moveX = gsap.quickTo(cursor, "x", {
-      duration: 0.16,
-      ease: "power2.out",
-    });
-
-    const moveY = gsap.quickTo(cursor, "y", {
-      duration: 0.16,
-      ease: "power2.out",
-    });
-
-    function isAvailable() {
-      return (
-        pointerMedia.matches &&
-        !motionMedia.matches
-      );
+    function setVisible(visible) {
+      root.style.opacity =
+        enabled && inside && visible && !isEditable
+          ? "1"
+          : "0";
     }
 
-    function setMode(mode) {
-      if (!enabled) return;
+    function updateFeedback() {
+      const interactive =
+        inspecting || isSelectable;
 
-      cursor.dataset.mode = mode;
+      ring.style.width = interactive
+        ? "42px"
+        : "34px";
+
+      ring.style.height = interactive
+        ? "42px"
+        : "34px";
+
+      ring.style.borderColor = inspecting
+        ? "#F6B54E"
+        : isSelectable
+          ? "#F3F3F4"
+          : "rgba(243,243,244,0.75)";
+
+      ring.style.background = inspecting
+        ? "rgba(246,181,78,0.09)"
+        : "rgba(243,243,244,0.035)";
+
+      dot.style.background = inspecting
+        ? "#F6B54E"
+        : "#F3F3F4";
+
+      dot.style.width = isPressed
+        ? "5px"
+        : "4px";
+
+      dot.style.height = isPressed
+        ? "5px"
+        : "4px";
+
+      const hint = inspecting
+        ? "MOVE"
+        : isSelectable
+          ? "SELECT"
+          : "";
+
+      label.textContent = hint;
+
+      label.style.opacity = hint
+        ? "1"
+        : "0";
     }
 
-    function modeFromElement(element) {
-      if (!(element instanceof Element)) {
-        return "default";
-      }
-
+    function schedule() {
       if (
-        element.closest(
-          NATIVE_CURSOR_SELECTOR
-        )
+        !frame &&
+        enabled &&
+        inside &&
+        initialized
       ) {
-        return "native";
-      }
+        previousTime = 0;
 
-      if (
-        element.closest(
-          '[data-af-cursor="grabbing"]'
-        )
-      ) {
-        return "grabbing";
+        frame = window.requestAnimationFrame(
+          animate
+        );
       }
-
-      if (
-        element.closest(
-          '[data-af-cursor="grab"]'
-        )
-      ) {
-        return "grab";
-      }
-
-      if (
-        element.closest(
-          INTERACTIVE_SELECTOR
-        )
-      ) {
-        return "interactive";
-      }
-
-      return "default";
     }
 
-    function refreshMode(target) {
-      if (!enabled) return;
+    function animate(timestamp) {
+      frame = 0;
 
-      const mode =
-        forcedMode ??
-        modeFromElement(target);
-
-      const nextMode =
-        pressed && mode === "grab"
-          ? "grabbing"
-          : pressed && mode === "interactive"
-            ? "pressed"
-            : mode;
-
-      setMode(nextMode);
-
-      cursor.style.opacity =
-        nextMode === "native" ? "0" : "1";
-    }
-
-    function activate() {
-      if (!isAvailable()) return;
-
-      enabled = true;
-
-      root.classList.add(
-        "af-custom-cursor-active"
-      );
-    }
-
-    function deactivate() {
-      enabled = false;
-      positioned = false;
-      pressed = false;
-      forcedMode = null;
-
-      root.classList.remove(
-        "af-custom-cursor-active"
-      );
-
-      cursor.style.opacity = "0";
-      cursor.dataset.mode = "default";
-    }
-
-    function handlePointerMove(event) {
-      if (!isAvailable()) {
-        if (enabled) deactivate();
+      if (!enabled || !inside) {
         return;
       }
 
-      // Touch and pen input always retain
-      // the device's native interaction.
-      if (event.pointerType !== "mouse") {
-        if (enabled) deactivate();
-        return;
+      const delta = previousTime
+        ? Math.min(
+            0.064,
+            (timestamp - previousTime) / 1000
+          )
+        : 1 / 60;
+
+      previousTime = timestamp;
+
+      // 1. Dot is fixed to the actual pointer.
+      setXY(
+        dot,
+        point.x,
+        point.y,
+        true
+      );
+
+      // 2. Ring follows quickly.
+      const ringAlpha =
+        1 - Math.exp(-delta / 0.048);
+
+      ringPosition.x +=
+        (point.x - ringPosition.x) *
+        ringAlpha;
+
+      ringPosition.y +=
+        (point.y - ringPosition.y) *
+        ringAlpha;
+
+      setXY(
+        ring,
+        ringPosition.x,
+        ringPosition.y,
+        true
+      );
+
+      // 3. Arrow follows independently.
+      // It remains above and left of the
+      // circle, never ahead/right.
+      const arrowAlpha =
+        1 - Math.exp(-delta / 0.17);
+
+      const arrowTargetX =
+        point.x - 13;
+
+      const arrowTargetY =
+        point.y - 22;
+
+      arrowPosition.x +=
+        (arrowTargetX - arrowPosition.x) *
+        arrowAlpha;
+
+      arrowPosition.y +=
+        (arrowTargetY - arrowPosition.y) *
+        arrowAlpha;
+
+      arrowPosition.x = Math.min(
+        arrowPosition.x,
+        ringPosition.x - 12
+      );
+
+      arrowPosition.y = Math.min(
+        arrowPosition.y,
+        ringPosition.y - 17
+      );
+
+      setXY(
+        arrow,
+        arrowPosition.x,
+        arrowPosition.y
+      );
+
+      setXY(
+        label,
+        ringPosition.x + 29,
+        ringPosition.y + 27
+      );
+
+      const unsettled =
+        Math.abs(
+          point.x - ringPosition.x
+        ) > 0.1 ||
+        Math.abs(
+          point.y - ringPosition.y
+        ) > 0.1 ||
+        Math.abs(
+          arrowTargetX - arrowPosition.x
+        ) > 0.1 ||
+        Math.abs(
+          arrowTargetY - arrowPosition.y
+        ) > 0.1;
+
+      if (unsettled) {
+        frame = window.requestAnimationFrame(
+          animate
+        );
       }
-
-      if (!enabled) activate();
-
-      lastX = event.clientX;
-      lastY = event.clientY;
-
-      if (!positioned) {
-        gsap.set(cursor, {
-          x: lastX,
-          y: lastY,
-        });
-
-        positioned = true;
-      } else {
-        moveX(lastX);
-        moveY(lastY);
-      }
-
-      refreshMode(event.target);
     }
 
-    function handlePointerOver(event) {
-      refreshMode(event.target);
+    function updateMode() {
+      enabled =
+        finePointer.matches &&
+        !reducedMotion.matches;
+
+      document.documentElement.classList.toggle(
+        ROOT_CLASS,
+        enabled
+      );
+
+      if (!enabled) {
+        inside = false;
+        inspecting = false;
+        isPressed = false;
+        isEditable = false;
+        isSelectable = false;
+
+        if (frame) {
+          window.cancelAnimationFrame(frame);
+        }
+
+        frame = 0;
+      }
+
+      updateFeedback();
+      setVisible(enabled);
     }
 
-    function handlePointerDown(event) {
+    function onPointerMove(event) {
       if (
         !enabled ||
-        event.pointerType !== "mouse"
+        event.pointerType === "touch"
       ) {
         return;
       }
 
-      pressed = true;
-      refreshMode(event.target);
-    }
+      const target = event.target;
 
-    function handlePointerUp(event) {
-      pressed = false;
+      isEditable =
+        target instanceof Element &&
+        Boolean(
+          target.closest(EDITABLE)
+        );
 
-      refreshMode(
-        event.target instanceof Element
-          ? event.target
-          : document.elementFromPoint(
-              lastX,
-              lastY
-            )
+      isSelectable =
+        target instanceof Element &&
+        Boolean(
+          target.closest(SELECTABLE)
+        );
+
+      point.x = event.clientX;
+      point.y = event.clientY;
+
+      inside = true;
+
+      if (!initialized) {
+        initialized = true;
+
+        ringPosition.x = point.x;
+        ringPosition.y = point.y;
+
+        arrowPosition.x =
+          point.x - 13;
+
+        arrowPosition.y =
+          point.y - 22;
+
+        setXY(
+          ring,
+          ringPosition.x,
+          ringPosition.y,
+          true
+        );
+
+        setXY(
+          arrow,
+          arrowPosition.x,
+          arrowPosition.y
+        );
+      }
+
+      // Dot updates immediately, even
+      // between animation frames.
+      setXY(
+        dot,
+        point.x,
+        point.y,
+        true
       );
+
+      updateFeedback();
+      setVisible(true);
+      schedule();
     }
 
-    function handlePointerLeave(event) {
+    function onPointerDown(event) {
+      if (
+        !enabled ||
+        event.pointerType === "touch"
+      ) {
+        return;
+      }
+
+      isPressed = true;
+      updateFeedback();
+    }
+
+    function onPointerUp() {
+      isPressed = false;
+      updateFeedback();
+    }
+
+    // Event emitted by the shared 3D
+    // ProductInspectionController.
+    function onInspection(event) {
+      inspecting = Boolean(
+        event.detail?.active ??
+        event.detail?.dragging
+      );
+
+      updateFeedback();
+      schedule();
+    }
+
+    function onPointerOut(event) {
       if (!event.relatedTarget) {
-        cursor.style.opacity = "0";
+        inside = false;
+        setVisible(false);
+
+        if (frame) {
+          window.cancelAnimationFrame(frame);
+        }
+
+        frame = 0;
       }
     }
 
-    function handleDragState(event) {
-      // Future 3D inspection controller:
-      // "grab" | "grabbing" | "default".
-      const mode = event.detail?.mode;
+    function onWindowBlur() {
+      inside = false;
+      inspecting = false;
+      isPressed = false;
 
-      forcedMode =
-        mode === "grab" ||
-        mode === "grabbing"
-          ? mode
-          : null;
-
-      refreshMode(
-        document.elementFromPoint(
-          lastX,
-          lastY
-        )
-      );
-    }
-
-    function handleAvailabilityChange() {
-      if (!isAvailable()) {
-        deactivate();
-      }
+      updateFeedback();
+      setVisible(false);
     }
 
     window.addEventListener(
       "pointermove",
-      handlePointerMove,
+      onPointerMove,
       { passive: true }
-    );
-
-    document.addEventListener(
-      "pointerover",
-      handlePointerOver
     );
 
     window.addEventListener(
       "pointerdown",
-      handlePointerDown
+      onPointerDown,
+      { passive: true }
     );
 
     window.addEventListener(
       "pointerup",
-      handlePointerUp
+      onPointerUp,
+      { passive: true }
     );
 
     window.addEventListener(
       "pointercancel",
-      handlePointerUp
+      onPointerUp,
+      { passive: true }
     );
 
     document.addEventListener(
       "pointerout",
-      handlePointerLeave
-    );
-
-    window.addEventListener(
-      CURSOR_EVENT,
-      handleDragState
+      onPointerOut
     );
 
     window.addEventListener(
       "blur",
-      deactivate
+      onWindowBlur
     );
 
-    pointerMedia.addEventListener(
-      "change",
-      handleAvailabilityChange
+    window.addEventListener(
+      "aural-forge:inspection",
+      onInspection
     );
 
-    motionMedia.addEventListener(
+    finePointer.addEventListener(
       "change",
-      handleAvailabilityChange
+      updateMode
     );
+
+    reducedMotion.addEventListener(
+      "change",
+      updateMode
+    );
+
+    updateMode();
 
     return () => {
-      deactivate();
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
 
       window.removeEventListener(
         "pointermove",
-        handlePointerMove
-      );
-
-      document.removeEventListener(
-        "pointerover",
-        handlePointerOver
+        onPointerMove
       );
 
       window.removeEventListener(
         "pointerdown",
-        handlePointerDown
+        onPointerDown
       );
 
       window.removeEventListener(
         "pointerup",
-        handlePointerUp
+        onPointerUp
       );
 
       window.removeEventListener(
         "pointercancel",
-        handlePointerUp
+        onPointerUp
       );
 
       document.removeEventListener(
         "pointerout",
-        handlePointerLeave
-      );
-
-      window.removeEventListener(
-        CURSOR_EVENT,
-        handleDragState
+        onPointerOut
       );
 
       window.removeEventListener(
         "blur",
-        deactivate
+        onWindowBlur
       );
 
-      pointerMedia.removeEventListener(
+      window.removeEventListener(
+        "aural-forge:inspection",
+        onInspection
+      );
+
+      finePointer.removeEventListener(
         "change",
-        handleAvailabilityChange
+        updateMode
       );
 
-      motionMedia.removeEventListener(
+      reducedMotion.removeEventListener(
         "change",
-        handleAvailabilityChange
+        updateMode
       );
 
-      gsap.killTweensOf(cursor);
+      document.documentElement.classList.remove(
+        ROOT_CLASS
+      );
+
+      cursorCss.remove();
     };
   }, []);
 
+  const floating = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    pointerEvents: "none",
+    willChange: "transform",
+  };
+
   return (
-    <>
-      <style>{`
-        @media (hover: hover) and (pointer: fine) {
-          html.af-custom-cursor-active,
-          html.af-custom-cursor-active body,
-          html.af-custom-cursor-active
-            *:not(input):not(textarea):not(select):not([contenteditable="true"]) {
-            cursor: none !important;
-          }
-        }
-
-        .af-experience-cursor {
-          position: fixed;
-          top: 0;
-          left: 0;
-          z-index: 2147483647;
-          width: 17px;
-          height: 17px;
-          border: 1px solid #ffffff;
-          border-radius: 50%;
-          background: transparent;
-          color: #ffffff;
-          opacity: 0;
-          pointer-events: none;
-          mix-blend-mode: difference;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          box-sizing: border-box;
-          will-change: transform;
-          transition:
-            width 180ms ease,
-            height 180ms ease,
-            background-color 180ms ease,
-            border-color 180ms ease,
-            opacity 120ms ease;
-        }
-
-        .af-experience-cursor::before {
-          content: "";
-          width: 3px;
-          height: 3px;
-          border-radius: 50%;
-          background: currentColor;
-        }
-
-        .af-experience-cursor[data-mode="interactive"] {
-          width: 37px;
-          height: 37px;
-          background: rgba(255,255,255,0.08);
-        }
-
-        .af-experience-cursor[data-mode="pressed"] {
-          width: 27px;
-          height: 27px;
-          background: rgba(255,255,255,0.2);
-        }
-
-        .af-experience-cursor[data-mode="grab"],
-        .af-experience-cursor[data-mode="grabbing"] {
-          width: 68px;
-          height: 68px;
-          background: rgba(255,255,255,0.1);
-        }
-
-        .af-experience-cursor[data-mode="grabbing"] {
-          width: 74px;
-          height: 74px;
-          background: rgba(255,255,255,0.22);
-        }
-
-        .af-experience-cursor[data-mode="grab"]::before,
-        .af-experience-cursor[data-mode="grabbing"]::before {
-          display: none;
-        }
-
-        .af-experience-cursor-label {
-          display: none;
-          font-family: "Geist Mono", monospace;
-          font-size: 10px;
-          letter-spacing: 0.12em;
-          font-weight: 600;
-        }
-
-        .af-experience-cursor[data-mode="grab"]
-          .af-experience-cursor-label,
-        .af-experience-cursor[data-mode="grabbing"]
-          .af-experience-cursor-label {
-          display: block;
-        }
-
-        .af-experience-cursor[data-mode="grabbing"]
-          .af-experience-cursor-label::after {
-          content: "MOVE";
-        }
-
-        .af-experience-cursor[data-mode="grab"]
-          .af-experience-cursor-label::after {
-          content: "DRAG";
-        }
-
-        @media (hover: none), (pointer: coarse),
-          (prefers-reduced-motion: reduce) {
-          .af-experience-cursor {
-            display: none !important;
-          }
-        }
-      `}</style>
-
+    <div
+      ref={rootRef}
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 2147483000,
+        pointerEvents: "none",
+        opacity: 0,
+        transition: "opacity 120ms ease",
+      }}
+    >
+      {/* Arrow — behind and above the circle */}
       <div
-        ref={cursorRef}
-        className="af-experience-cursor"
-        data-mode="default"
-        aria-hidden="true"
+        ref={arrowRef}
+        style={{
+          ...floating,
+          zIndex: 1,
+          width: 20,
+          height: 26,
+        }}
       >
-        <span className="af-experience-cursor-label" />
+        <svg
+          width="20"
+          height="26"
+          viewBox="0 0 20 26"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{
+            display: "block",
+            overflow: "visible",
+          }}
+        >
+          <path
+            d="M1.5 1.5L1.5 19.2L6.5 15.4L10.8 24L14.2 22L10 13.4L17.5 12.8L1.5 1.5Z"
+            fill="#F3F3F4"
+            stroke="#0D0D0D"
+            strokeWidth="1.3"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
-    </>
+
+      {/* Circular ring — follows closely */}
+      <div
+        ref={ringRef}
+        style={{
+          ...floating,
+          zIndex: 2,
+          width: 34,
+          height: 34,
+          border:
+            "1.5px solid rgba(243,243,244,0.75)",
+          borderRadius: "50%",
+          background:
+            "rgba(243,243,244,0.035)",
+          boxSizing: "border-box",
+          transition:
+            "width 160ms ease, height 160ms ease, border-color 160ms ease, background-color 160ms ease",
+        }}
+      />
+
+      {/* Center dot — exact pointer position */}
+      <div
+        ref={dotRef}
+        style={{
+          ...floating,
+          zIndex: 3,
+          width: 4,
+          height: 4,
+          borderRadius: "50%",
+          background: "#F3F3F4",
+          boxShadow:
+            "0 0 8px rgba(243,243,244,0.25)",
+        }}
+      />
+
+      {/* Interaction feedback */}
+      <div
+        ref={labelRef}
+        style={{
+          ...floating,
+          zIndex: 4,
+          color: "#F3F3F4",
+          fontFamily: "Inter, sans-serif",
+          fontSize: 9,
+          fontWeight: 600,
+          letterSpacing: "0.14em",
+          whiteSpace: "nowrap",
+          opacity: 0,
+          transition: "opacity 160ms ease",
+          textShadow:
+            "0 1px 4px #0D0D0D",
+        }}
+      />
+    </div>
   );
 }
