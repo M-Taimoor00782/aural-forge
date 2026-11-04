@@ -10,40 +10,177 @@ import {
   getReadyProductFamilies,
 } from "@/config/productFamilies";
 
+import ProductParallaxBanner from "./ProductParallaxBanner";
 import styles from "./StorySections.module.css";
 
-// Shared UI tokens. Family worlds and finish
-// colors remain controlled by their own configs.
-const UI = {
-  text: "var(--af-bright-white, #F3F3F4)",
-  muted: "var(--af-text-secondary, #ADB3BA)",
-  subtle: "var(--af-slate-grey, #7D868C)",
-  gold: "var(--af-golden-sand, #F6B54E)",
-  terracotta: "var(--af-terracotta, #C3783A)",
-  charcoal: "var(--af-deep-charcoal, #0D0D0D)",
-  elevated: "var(--af-surface-elevated, #25202B)",
-  border: "var(--af-border, rgba(243,243,244,0.13))",
-  borderStrong: "var(--af-border-strong, rgba(243,243,244,0.23))",
-  bodyFont: "var(--font-af-body), Montserrat, sans-serif",
-  headingFont: "var(--font-af-heading), Saira, sans-serif",
-  buttonFont: "var(--font-af-button), Inter, sans-serif",
+/*
+ * AURAL FORGE — FAMILY-SPECIFIC STORYTELLING
+ *
+ * This file controls editorial content and
+ * configurator UI only.
+ *
+ * The following scroll section IDs are preserved:
+ * hero
+ * performance
+ * detail
+ * acoustic-reveal
+ * configurator
+ * finale
+ *
+ * 3D motion and GSAP choreography remain
+ * in their existing controllers.
+ */
+
+const PRODUCT_STORIES = {
+  headphones: {
+    hero: {
+      eyebrow: "01 / Over-ear Headphones",
+      title: ["Sound,", "sculpted."],
+      description:
+        "A bold over-ear silhouette, considered details, and a listening experience shaped around the music.",
+    },
+
+    performance: {
+      eyebrow: "02 / Listening Experience",
+      title: ["Hear every", "dimension."],
+      description:
+        "Follow the layers of a track. From its quietest texture to its most expressive moment, discover a more intentional way to listen.",
+    },
+
+    detail: {
+      eyebrow: "03 / Form & Finish",
+      title: ["Made to", "be noticed."],
+      description:
+        "Sculpted earcups, considered proportions, and contrasting surfaces give the headphones their distinctive presence.",
+    },
+
+    reveal: {
+      eyebrow: "04 / Acoustic Architecture",
+      title: ["Beyond", "the surface."],
+      description:
+        "Go beneath the assembled form as the earcup layers separate in a controlled mechanical reveal, then return to one complete design.",
+    },
+
+    configurator: {
+      eyebrow: "05 / Choose Your Style",
+      title: ["Find your", "finish."],
+      description:
+        "Explore the available finishes and see your chosen look reflected on the real 3D headphones.",
+    },
+
+    finale: {
+      eyebrow: "06 / The Final Note",
+      title: ["Keep the", "feeling."],
+      description:
+        "An unmistakable silhouette. A personal finish. Audio equipment that makes a lasting impression.",
+    },
+  },
+
+  earbuds: {
+    hero: {
+      eyebrow: "01 / Wireless Earbuds",
+      title: ["Small form.", "Bold presence."],
+      description:
+        "A compact pair of wireless earbuds and a sculpted charging case, presented as one considered design.",
+    },
+
+    performance: {
+      eyebrow: "02 / Everyday Listening",
+      title: ["Make space", "for sound."],
+      description:
+        "From the first track of the morning to a moment of calm, bring your listening ritual wherever life moves.",
+    },
+
+    detail: {
+      eyebrow: "03 / Compact Craft",
+      title: ["Every detail", "counts."],
+      description:
+        "Discover the balance between the individual earbuds and the charging case that brings them together.",
+    },
+
+    reveal: {
+      eyebrow: "04 / Inside the Case",
+      title: ["Beyond", "the case."],
+      description:
+        "A closer perspective on the case, its lid, and the earbuds inside — distinct components of one cohesive form.",
+    },
+
+    configurator: {
+      eyebrow: "05 / Choose Your Style",
+      title: ["Your sound.", "Your shade."],
+      description:
+        "Choose a finish and explore its material treatment on the wireless earbuds and case in real time.",
+    },
+
+    finale: {
+      eyebrow: "06 / The Everyday Edit",
+      title: ["Made to", "move."],
+      description:
+        "Considered proportions, an effortless silhouette, and a finish that feels like your own.",
+    },
+  },
 };
 
-function getFamilyAccent(familyId) {
-  return familyId === "earbuds"
-    ? UI.terracotta
-    : UI.gold;
+/*
+ * Semantic UI tokens.
+ *
+ * Global Dark/Light themes change these
+ * colors without modifying product materials
+ * or product-family cinematic worlds.
+ */
+
+const UI = {
+  text: "var(--af-text-primary, #F3F3F4)",
+  secondary: "var(--af-text-secondary, #ADB3BA)",
+  accent: "var(--af-accent, #F6B54E)",
+  surface: "var(--af-surface, #1A1621)",
+  elevated: "var(--af-surface-elevated, #25202B)",
+  border: "var(--af-border, rgba(243,243,244,0.13))",
+  strongBorder:
+    "var(--af-border-strong, rgba(243,243,244,0.25))",
+
+  body: "var(--af-font-body, Montserrat, sans-serif)",
+  heading: "var(--af-font-heading, Saira, sans-serif)",
+  button: "var(--af-font-button, Inter, sans-serif)",
+
+  buttonBg: "var(--af-button-bg, #F6B54E)",
+  buttonText: "var(--af-button-text, #0D0D0D)",
+};
+
+/* Product pricing helper */
+
+function formatPrice(variant) {
+  if (
+    typeof variant?.price !== "number" ||
+    !Number.isFinite(variant.price)
+  ) {
+    return null;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: variant.currency || "USD",
+    maximumFractionDigits: 0,
+  }).format(variant.price);
 }
+
+/*
+ * Keep family switching available inside
+ * the configurator.
+ *
+ * The premium header already provides
+ * primary product-family navigation.
+ */
 
 function ProductFamilySwitcher({
   familyId,
   onFamilyChange,
-  compact = false,
 }) {
-  const families = getReadyProductFamilies();
-  const activeFamily = getProductFamily(familyId);
+  const readyFamilies = getReadyProductFamilies();
 
-  if (families.length < 2) return null;
+  if (readyFamilies.length < 2) {
+    return null;
+  }
 
   return (
     <div
@@ -51,21 +188,20 @@ function ProductFamilySwitcher({
       style={{
         position: "relative",
         zIndex: 10,
-        width: "min(100%, 460px)",
-        marginTop: compact ? 0 : 28,
-        marginBottom: compact ? 20 : 0,
+        width: "100%",
+        marginBottom: 20,
         pointerEvents: "auto",
       }}
     >
       <p
         style={{
-          margin: "0 0 12px",
-          fontFamily: UI.bodyFont,
+          marginBottom: 12,
+          color: UI.secondary,
+          fontFamily: UI.body,
           fontSize: 10,
           fontWeight: 600,
-          letterSpacing: "0.18em",
+          letterSpacing: "0.16em",
           textTransform: "uppercase",
-          color: UI.muted,
         }}
       >
         Explore the collection
@@ -77,113 +213,135 @@ function ProductFamilySwitcher({
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: 10,
+          gap: 9,
         }}
       >
-        {families.map((family) => {
-          const selected =
-            family.id === activeFamily.id;
-
-          const familyAccent =
-            getFamilyAccent(family.id);
+        {readyFamilies.map((family) => {
+          const active = family.id === familyId;
 
           return (
             <button
               key={family.id}
               type="button"
-              aria-pressed={selected}
-              aria-label={`View ${family.label}`}
+              aria-pressed={active}
               onClick={() => {
-                if (!selected) {
+                if (!active) {
                   onFamilyChange?.(family.id);
                 }
               }}
               data-af-cursor="interactive"
               style={{
-                flex: "1 1 150px",
+                flex: "1 1 140px",
                 minWidth: 0,
-                minHeight: 54,
-                padding: "10px 14px",
+                minHeight: 48,
+
+                padding: "11px 14px",
+
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 gap: 12,
+
                 border: `1px solid ${
-                  selected
-                    ? familyAccent
-                    : UI.borderStrong
+                  active
+                    ? UI.accent
+                    : UI.strongBorder
                 }`,
-                borderRadius: 11,
-                background: selected
-                  ? family.id === "earbuds"
-                    ? "rgba(195,120,58,0.14)"
-                    : "rgba(246,181,78,0.11)"
-                  : "rgba(26,22,33,0.94)",
+
+                borderRadius: 10,
+
+                background: active
+                  ? UI.elevated
+                  : UI.surface,
+
                 color: UI.text,
-                cursor: selected
+
+                fontFamily: UI.button,
+                fontSize: 12,
+                fontWeight: active ? 600 : 500,
+                textAlign: "left",
+
+                cursor: active
                   ? "default"
                   : "pointer",
-                fontFamily: UI.buttonFont,
-                fontSize: 12,
-                fontWeight: selected ? 600 : 500,
-                textAlign: "left",
-                outlineOffset: 4,
-                backdropFilter: "blur(14px)",
-                WebkitBackdropFilter: "blur(14px)",
+
                 transition:
                   "border-color 180ms ease, background-color 180ms ease",
               }}
             >
+              <span>{family.label}</span>
+
               <span
                 aria-hidden="true"
                 style={{
-                  color: selected
-                    ? familyAccent
-                    : UI.subtle,
-                  fontSize: 11,
-                  fontFamily: UI.buttonFont,
+                  color: active
+                    ? UI.accent
+                    : UI.secondary,
+                  fontSize: 10,
                 }}
               >
                 {family.number}
               </span>
-
-              <span style={{ flex: 1 }}>
-                {family.label}
-              </span>
-
-              {selected && (
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 6,
-                    height: 6,
-                    flexShrink: 0,
-                    borderRadius: "50%",
-                    background: familyAccent,
-                  }}
-                />
-              )}
             </button>
           );
         })}
       </div>
-
-      {!compact && (
-        <p
-          role="status"
-          aria-live="polite"
-          style={{
-            margin: "10px 0 0",
-            color: UI.muted,
-            fontFamily: UI.bodyFont,
-            fontSize: 11,
-          }}
-        >
-          Viewing {activeFamily.label}
-        </p>
-      )}
     </div>
   );
 }
+
+/*
+ * Reusable editorial content.
+ *
+ * The surrounding section remains responsible
+ * for its existing scroll and 3D choreography.
+ */
+
+function StoryPanel({
+  id,
+  content,
+  position = "left",
+  hero = false,
+  children,
+}) {
+  const Heading = hero ? "h1" : "h2";
+
+  const headingId =
+    id === "acoustic-reveal"
+      ? "reveal-heading"
+      : `${id}-heading`;
+
+  return (
+    <div
+      className={`${styles.content} ${styles[position]}`}
+    >
+      <span className={styles.eyebrow}>
+        {content.eyebrow}
+      </span>
+
+      <Heading
+        id={headingId}
+        className={styles.heading}
+      >
+        {content.title[0]}
+        <br />
+        {content.title[1]}
+      </Heading>
+
+      <p className={styles.description}>
+        {content.description}
+      </p>
+
+      {children}
+    </div>
+  );
+}
+
+/*
+ * Main storytelling structure.
+ *
+ * Keep the same six sections in the same order.
+ */
 
 export default function StorySections({
   familyId = DEFAULT_PRODUCT_FAMILY_ID,
@@ -192,163 +350,156 @@ export default function StorySections({
   onVariantChange,
 }) {
   const family = getProductFamily(familyId);
-  const isEarbuds = family.id === "earbuds";
+
+  const story =
+    PRODUCT_STORIES[family.id] ??
+    PRODUCT_STORIES.headphones;
+
+  const activeVariant = getProductFamilyVariant(
+    family.id,
+    variantId
+  );
+
+  const variantName =
+    activeVariant?.name ??
+    activeVariant?.label ??
+    "Signature finish";
+
+  const price = formatPrice(activeVariant);
 
   return (
     <main className={styles.story}>
-      {/* 01 — Product Arrival */}
+      {/* 01 — HERO */}
+
       <section
         id="hero"
         className={styles.section}
         aria-labelledby="hero-heading"
       >
-        <div
-          className={`${styles.content} ${styles.left}`}
+        <StoryPanel
+          id="hero"
+          content={story.hero}
+          hero
         >
-          <span className={styles.eyebrow}>
-            01 / The Arrival
-          </span>
+          <div
+            aria-label="Current product selection"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "8px 14px",
 
-          <h1
-            id="hero-heading"
-            className={styles.heading}
+              marginTop: 26,
+              paddingTop: 15,
+
+              borderTop: `1px solid ${UI.border}`,
+
+              color: UI.secondary,
+              fontFamily: UI.body,
+              fontSize: 11,
+              lineHeight: 1.5,
+            }}
           >
-            Sound,
-            <br />
-            sculpted.
-          </h1>
+            <span
+              style={{
+                color: UI.text,
+                fontWeight: 600,
+              }}
+            >
+              {family.label}
+            </span>
 
-          <p className={styles.description}>
-            Meet Aural Forge. A new perspective on
-            personal audio, where considered design
-            meets an immersive listening experience.
-          </p>
+            <span aria-hidden="true">/</span>
 
-          <ProductFamilySwitcher
-            familyId={familyId}
-            onFamilyChange={onFamilyChange}
-          />
-        </div>
+            <span>{variantName}</span>
+
+            {price && (
+              <strong
+                style={{
+                  color: UI.text,
+                  fontWeight: 600,
+                }}
+              >
+                {price}
+              </strong>
+            )}
+          </div>
+
+          <a
+            href="#configurator"
+            data-af-cursor="interactive"
+            className="af-button"
+            style={{
+              marginTop: 22,
+              width: "fit-content",
+              maxWidth: "100%",
+            }}
+          >
+            Explore finishes
+
+            <span aria-hidden="true">↗</span>
+          </a>
+        </StoryPanel>
       </section>
 
-      {/* 02 — Performance */}
+      {/* 02 — PERFORMANCE */}
+
       <section
         id="performance"
         className={styles.section}
         aria-labelledby="performance-heading"
       >
-        <div
-          className={`${styles.content} ${styles.right}`}
-        >
-          <span className={styles.eyebrow}>
-            02 / Performance
-          </span>
-
-          <h2
-            id="performance-heading"
-            className={styles.heading}
-          >
-            Feel every
-            <br />
-            layer.
-          </h2>
-
-          <p className={styles.description}>
-            Music is more than what you hear. It is
-            depth, texture, and detail — a world
-            waiting to be explored.
-          </p>
-        </div>
+        <StoryPanel
+          id="performance"
+          content={story.performance}
+          position="right"
+        />
       </section>
 
-      {/* 03 — Detail & Craft */}
+      {/* 03 — DETAIL */}
+
       <section
         id="detail"
         className={styles.section}
         aria-labelledby="detail-heading"
       >
-        <div
-          className={`${styles.content} ${styles.right}`}
-        >
-          <span className={styles.eyebrow}>
-            03 / The Details
-          </span>
-
-          <h2
-            id="detail-heading"
-            className={styles.heading}
-          >
-            Crafted
-            <br />
-            to matter.
-          </h2>
-
-          <p className={styles.description}>
-            {isEarbuds
-              ? "From the charging case to the sculpted earbuds, every surface is designed with precision and purpose."
-              : "From the metallic finish to the sculpted ear cushions, every surface contributes to a distinctive product identity."}
-          </p>
-        </div>
+        <StoryPanel
+          id="detail"
+          content={story.detail}
+          position="right"
+        />
       </section>
 
-      {/* 04 — Acoustic / Mechanical Reveal */}
+      {/* PRODUCT-SPECIFIC IMAGE INTERLUDE */}
+
+      <ProductParallaxBanner
+        familyId={family.id}
+      />
+      {/* 04 — MECHANICAL REVEAL */}
+
       <section
         id="acoustic-reveal"
         className={styles.section}
         aria-labelledby="reveal-heading"
       >
-        <div
-          className={`${styles.content} ${styles.left}`}
-        >
-          <span className={styles.eyebrow}>
-            04 / Inside the Design
-          </span>
-
-          <h2
-            id="reveal-heading"
-            className={styles.heading}
-          >
-            Beyond
-            <br />
-            the surface.
-          </h2>
-
-          <p className={styles.description}>
-            {isEarbuds
-              ? "Discover the details of the charging case as its lid opens and the earbuds emerge."
-              : "Look closer as the earcup layers separate, revealing the construction behind the assembled form."}
-          </p>
-        </div>
+        <StoryPanel
+          id="acoustic-reveal"
+          content={story.reveal}
+        />
       </section>
 
-      {/* 05 — Family-aware Configurator */}
+      {/* 05 — CONFIGURATOR */}
+
       <section
         id="configurator"
         className={styles.section}
         aria-labelledby="configurator-heading"
       >
-        <div
-          className={`${styles.content} ${styles.right}`}
-        >
-          <span className={styles.eyebrow}>
-            05 / Choose Your Style
-          </span>
-
-          <h2
-            id="configurator-heading"
-            className={styles.heading}
-          >
-            Make it
-            <br />
-            yours.
-          </h2>
-
-          <p className={styles.description}>
-            One distinctive design. A personal
-            expression. Find the finish that defines
-            your style.
-          </p>
-        </div>
+        <StoryPanel
+          id="configurator"
+          content={story.configurator}
+          position="right"
+        />
 
         <div
           style={{
@@ -359,9 +510,8 @@ export default function StorySections({
           }}
         >
           <ProductFamilySwitcher
-            familyId={familyId}
+            familyId={family.id}
             onFamilyChange={onFamilyChange}
-            compact
           />
 
           <VariantConfigurator
@@ -373,45 +523,38 @@ export default function StorySections({
         </div>
       </section>
 
-      {/* 06 — Cinematic Finale */}
+      {/* 06 — FINALE */}
+
       <section
         id="finale"
         className={styles.section}
         aria-labelledby="finale-heading"
       >
-        <div
-          className={`${styles.content} ${styles.left}`}
-        >
-          <span className={styles.eyebrow}>
-            06 / Aural Forge
-          </span>
-
-          <h2
-            id="finale-heading"
-            className={styles.heading}
-          >
-            Hear
-            <br />
-            differently.
-          </h2>
-
-          <p className={styles.description}>
-            More than a listening device. A statement
-            of form, presence, and personal sound.
-          </p>
-        </div>
+        <StoryPanel
+          id="finale"
+          content={story.finale}
+        />
       </section>
     </main>
   );
 }
+
+/*
+ * Existing variant-driven 3D configurator.
+ *
+ * Family variant selection continues to be
+ * controlled by ExperienceRuntime.
+ */
 
 function VariantConfigurator({
   family,
   variantId,
   onVariantChange,
 }) {
-  const [addedVariantId, setAddedVariantId] =
-    useState(null);
+  const [
+    addedVariantId,
+    setAddedVariantId,
+  ] = useState(null);
 
   const selected = getProductFamilyVariant(
     family.id,
@@ -420,26 +563,15 @@ function VariantConfigurator({
 
   if (!selected) return null;
 
-  const familyAccent = getFamilyAccent(
-    family.id
-  );
-
   const selectedName =
     selected.name ??
     selected.label ??
     selected.id;
 
-  const added = addedVariantId === selected.id;
+  const price = formatPrice(selected);
 
-  const price =
-    typeof selected.price === "number" &&
-    Number.isFinite(selected.price)
-      ? new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: selected.currency ?? "USD",
-          maximumFractionDigits: 0,
-        }).format(selected.price)
-      : null;
+  const added =
+    addedVariantId === selected.id;
 
   return (
     <div
@@ -447,22 +579,22 @@ function VariantConfigurator({
       style={{
         position: "relative",
         zIndex: 3,
+
         width: "100%",
-        boxSizing: "border-box",
-        padding: "clamp(20px, 3vw, 32px)",
+        padding: "clamp(20px, 3vw, 30px)",
+
         border: `1px solid ${UI.border}`,
         borderRadius: 18,
-        background: "rgba(26,22,33,0.96)",
+
+        background: UI.surface,
         color: UI.text,
-        backdropFilter: "blur(18px)",
-        WebkitBackdropFilter: "blur(18px)",
       }}
     >
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "flex-start",
+          justifyContent: "space-between",
           gap: 16,
           flexWrap: "wrap",
         }}
@@ -470,11 +602,13 @@ function VariantConfigurator({
         <div>
           <p
             style={{
-              margin: "0 0 12px",
-              color: UI.gold,
-              fontFamily: UI.bodyFont,
-              fontSize: 11,
+              marginBottom: 11,
+
+              color: UI.accent,
+              fontFamily: UI.body,
+              fontSize: 10,
               fontWeight: 600,
+
               letterSpacing: "0.15em",
               textTransform: "uppercase",
             }}
@@ -484,13 +618,12 @@ function VariantConfigurator({
 
           <h3
             style={{
-              margin: 0,
-              fontFamily: UI.headingFont,
-              fontSize: "clamp(23px, 3vw, 30px)",
-              fontWeight: 600,
-              letterSpacing: "-0.035em",
-              lineHeight: 1.2,
               color: UI.text,
+              fontFamily: UI.heading,
+
+              fontSize: "clamp(23px, 3vw, 29px)",
+              lineHeight: 1.2,
+              fontWeight: 600,
             }}
           >
             Choose your finish
@@ -498,9 +631,8 @@ function VariantConfigurator({
 
           <p
             style={{
-              margin: "9px 0 0",
-              color: UI.muted,
-              fontFamily: UI.bodyFont,
+              marginTop: 8,
+              color: UI.secondary,
               fontSize: 11,
             }}
           >
@@ -511,11 +643,9 @@ function VariantConfigurator({
         {price && (
           <strong
             style={{
-              fontFamily: UI.buttonFont,
-              fontSize: 21,
-              fontWeight: 500,
-              letterSpacing: "-0.03em",
               color: UI.text,
+              fontFamily: UI.button,
+              fontSize: 19,
             }}
           >
             {price}
@@ -528,38 +658,37 @@ function VariantConfigurator({
         aria-label={`Available ${family.label} finishes`}
         style={{
           display: "grid",
+
           gridTemplateColumns:
             "repeat(auto-fit, minmax(min(100%, 125px), 1fr))",
+
           gap: 10,
-          marginTop: 26,
+          marginTop: 24,
         }}
       >
         {family.variants.map((variant) => {
-          const isSelected =
-            variant.id === selected.id;
+          const active =
+            selected.id === variant.id;
 
-          const variantName =
+          const name =
             variant.name ??
             variant.label ??
             variant.id;
 
-          const variantWorld =
-            getProductFamilyWorld(
-              family.id,
-              variant.id
-            );
-
           const swatch =
             typeof variant.swatch === "string"
               ? variant.swatch
-              : variantWorld.palette.accent;
+              : getProductFamilyWorld(
+                  family.id,
+                  variant.id
+                ).palette.accent;
 
           return (
             <button
               key={variant.id}
               type="button"
-              aria-pressed={isSelected}
-              aria-label={`Select ${variantName} finish`}
+              aria-label={`Select ${name} finish`}
+              aria-pressed={active}
               data-af-cursor="interactive"
               onClick={() => {
                 onVariantChange?.(variant.id);
@@ -568,28 +697,33 @@ function VariantConfigurator({
               style={{
                 display: "flex",
                 flexDirection: "column",
+
                 alignItems: "flex-start",
                 justifyContent: "center",
+
                 gap: 10,
-                minHeight: 83,
+                minHeight: 82,
                 padding: "12px 14px",
-                borderRadius: 10,
+
                 border: `1px solid ${
-                  isSelected
-                    ? familyAccent
-                    : UI.borderStrong
+                  active
+                    ? UI.accent
+                    : UI.strongBorder
                 }`,
-                background: isSelected
-                  ? "rgba(246,181,78,0.10)"
-                  : "rgba(13,13,13,0.55)",
+
+                borderRadius: 10,
+
+                background: active
+                  ? UI.elevated
+                  : "transparent",
+
                 color: UI.text,
-                cursor: "pointer",
-                fontFamily: UI.buttonFont,
+
+                fontFamily: UI.button,
                 fontSize: 12,
+
+                cursor: "pointer",
                 textAlign: "left",
-                outlineOffset: 3,
-                transition:
-                  "border-color 180ms ease, background-color 180ms ease",
               }}
             >
               <span
@@ -598,16 +732,19 @@ function VariantConfigurator({
                   width: 24,
                   height: 24,
                   borderRadius: "50%",
+
                   background: swatch,
+
                   border:
-                    "2px solid rgba(243,243,244,0.25)",
-                  boxShadow: isSelected
-                    ? `0 0 0 2px ${familyAccent}`
+                    `2px solid ${UI.strongBorder}`,
+
+                  boxShadow: active
+                    ? `0 0 0 2px ${UI.accent}`
                     : "none",
                 }}
               />
 
-              <span>{variantName}</span>
+              <span>{name}</span>
             </button>
           );
         })}
@@ -615,18 +752,16 @@ function VariantConfigurator({
 
       <div
         style={{
-          marginTop: 24,
-          paddingTop: 20,
+          marginTop: 22,
+          paddingTop: 18,
           borderTop: `1px solid ${UI.border}`,
         }}
       >
         <p
           style={{
-            margin: "0 0 6px",
-            fontFamily: UI.bodyFont,
-            fontWeight: 600,
-            fontSize: 15,
             color: UI.text,
+            fontSize: 15,
+            fontWeight: 600,
           }}
         >
           {selectedName}
@@ -634,11 +769,11 @@ function VariantConfigurator({
 
         <p
           style={{
-            margin: "0 0 22px",
-            color: UI.muted,
-            fontFamily: UI.bodyFont,
-            fontSize: 13,
-            lineHeight: 1.6,
+            margin: "7px 0 20px",
+
+            color: UI.secondary,
+            fontSize: 12,
+            lineHeight: 1.65,
           }}
         >
           {selected.description ??
@@ -651,27 +786,21 @@ function VariantConfigurator({
           onClick={() => {
             setAddedVariantId(selected.id);
           }}
+          className="af-button"
           style={{
             width: "100%",
-            minHeight: 48,
-            padding: "12px 20px",
-            border: `1px solid ${
-              added ? UI.borderStrong : "transparent"
-            }`,
-            borderRadius: 8,
+
             background: added
               ? UI.elevated
-              : UI.gold,
+              : UI.buttonBg,
+
             color: added
               ? UI.text
-              : UI.charcoal,
-            fontFamily: UI.buttonFont,
-            fontWeight: 600,
-            fontSize: 14,
-            cursor: "pointer",
-            outlineOffset: 3,
-            transition:
-              "background-color 180ms ease, color 180ms ease",
+              : UI.buttonText,
+
+            border: added
+              ? `1px solid ${UI.strongBorder}`
+              : "1px solid transparent",
           }}
         >
           {added
@@ -685,18 +814,21 @@ function VariantConfigurator({
           aria-live="polite"
           style={{
             minHeight: 18,
-            margin: "12px 0 0",
-            color: UI.muted,
-            fontFamily: UI.bodyFont,
-            fontSize: 11,
-            lineHeight: 1.5,
+            marginTop: 12,
+
+            color: UI.secondary,
+            fontFamily: UI.body,
+
+            fontSize: 10,
+            lineHeight: 1.6,
           }}
         >
           {added
-            ? `${selectedName} selected for your demo bag.`
-            : "Interactive 3D product preview · Demo checkout only"}
+            ? `${selectedName} marked for this demo preview. No cart order has been created.`
+            : "Interactive 3D preview · Demo checkout is not active yet"}
         </p>
       </div>
     </div>
   );
 }
+

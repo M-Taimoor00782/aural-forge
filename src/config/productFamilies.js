@@ -93,13 +93,16 @@ export const PRODUCT_FAMILIES = {
       environmentId: "earbuds-studio",
 
       /*
-       * Keep the existing variant-driven
-       * background architecture.
+       * Cinematic atmosphere belongs to
+       * the product family.
        *
-       * The selected Earbuds variant may
-       * provide an alternate curated palette.
+       * Selecting a finish must not recolor
+       * the entire cinematic experience.
+       *
+       * Individual product materials remain
+       * controlled by the variant pipeline.
        */
-      backgroundSource: "variant",
+      backgroundSource: "fixed",
 
       palette: {
         background: "#0D0D0D",
@@ -259,3 +262,4 @@ export function isProductFamilyReady(
     family.asset.url
   );
 }
+

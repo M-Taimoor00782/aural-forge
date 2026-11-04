@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/src/components/ExperienceCursor.js.bak
+/src/components/ExperienceCursor.js.before-hand-layer-fix.bak
+/src/components/ExperienceCursor.js.single-ring-backup

@@ -1,30 +1,49 @@
 ﻿/*
- * AURAL FORGE — STORY SECTIONS
+ * AURAL FORGE — CINEMATIC STORY COMPOSITION
  *
- * Locked typography:
- * Headings — Saira
- * Body — Montserrat
- * Buttons — Inter
+ * Phase 3 / Step 2
  *
- * Locked visual direction:
- * Deep Charcoal / Midnight surfaces
- * Bright White / muted cool-grey text
- * Golden Sand accents
+ * Shared content alignment
+ * Balanced editorial lanes
+ * Product-safe desktop composition
+ * Intentional portrait layouts
  *
- * This file retains the established
- * responsive product/content composition.
+ * Preserve:
+ * - Six existing scroll section IDs
+ * - GSAP / ScrollTrigger ownership
+ * - Persistent 3D Canvas
+ * - Existing product-stage transitions
  */
+
+/* ========================================
+   CINEMATIC WORLD FOUNDATION
+======================================== */
 
 .story {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+
   width: 100%;
+
   pointer-events: none;
+
+  /*
+   * Story interface colors follow
+   * the global Dark/Light theme.
+   *
+   * Product family and variant colors
+   * remain independent from this UI.
+   *
+   * The persistent 3D model continues
+   * to render through its existing scene.
+   */
+
+  color: var(--af-text-primary);
 }
 
-/* -----------------------------------------
-   Section layout
------------------------------------------ */
+/* ========================================
+   SECTION CONTAINER
+======================================== */
 
 .section {
   position: relative;
@@ -32,36 +51,41 @@
   display: flex;
   align-items: center;
 
-  box-sizing: border-box;
-
   width: 100%;
+  min-width: 0;
 
   min-height: 100vh;
   min-height: 100svh;
 
-  padding-block:
-    clamp(48px, 7vh, 96px);
-
   padding-inline:
-    clamp(24px, 7vw, 112px);
+    max(
+      var(--af-page-gutter, 24px),
+      calc(
+        (100vw - var(--af-container-max, 1390px))
+        / 2
+      )
+    );
 
-  gap: clamp(24px, 4vw, 64px);
+  padding-block:
+    clamp(84px, 12vh, 150px);
+
+  gap: clamp(32px, 5vw, 88px);
 
   pointer-events: none;
 }
 
-/* -----------------------------------------
-   Editorial content lanes
------------------------------------------ */
+/* ========================================
+   EDITORIAL LANES
+======================================== */
 
 .content {
   position: relative;
-  z-index: 2;
+  z-index: 3;
 
-  flex: 0 1 420px;
+  flex: 0 1 clamp(280px, 33vw, 440px);
 
-  width: min(100%, 420px);
-  max-width: 420px;
+  width: min(100%, 440px);
+  max-width: 440px;
   min-width: 0;
 
   pointer-events: auto;
@@ -70,11 +94,13 @@
 .left {
   margin-left: 0;
   margin-right: auto;
+  text-align: left;
 }
 
 .right {
   margin-left: auto;
   margin-right: 0;
+  text-align: left;
 }
 
 .center {
@@ -82,90 +108,70 @@
   text-align: center;
 }
 
-/* -----------------------------------------
-   Typography
------------------------------------------ */
+/* ========================================
+   EDITORIAL TYPOGRAPHY
+======================================== */
 
 .eyebrow {
   display: block;
 
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 
   color:
-    var(
-      --af-accent,
-      #F6B54E
-    );
+    var(--af-accent, #F6B54E);
 
   font-family:
-    var(--font-af-body),
-    Montserrat,
-    sans-serif;
+    var(--af-font-body, Montserrat, sans-serif);
 
   font-size: 11px;
   font-weight: 600;
 
+  letter-spacing: 0.16em;
   line-height: 1.5;
-  letter-spacing: 0.17em;
 
   text-transform: uppercase;
 }
 
 .heading {
-  margin: 0;
-
   max-width: 100%;
 
+  margin: 0;
+
   color:
-    var(
-      --af-text-primary,
-      #F3F3F4
-    );
+    var(--af-text-primary, #F3F3F4);
 
   font-family:
-    var(--font-af-heading),
-    Saira,
-    sans-serif;
+    var(--af-font-heading, Saira, sans-serif);
 
-  font-size: clamp(
-    42px,
-    5.5vw,
-    80px
-  );
+  font-size:
+    clamp(46px, 5.4vw, 78px);
 
   font-weight: 600;
-  line-height: 1.06;
-  letter-spacing: -0.045em;
+
+  line-height: 1.09;
+  letter-spacing: -0.044em;
 
   text-wrap: balance;
 }
 
 .description {
-  max-width: 340px;
+  width: 100%;
+  max-width: 43ch;
 
   margin-top: 24px;
-  margin-bottom: 0;
 
   color:
-    var(
-      --af-text-secondary,
-      #ADB3BA
-    );
+    var(--af-text-secondary, #ADB3BA);
 
   font-family:
-    var(--font-af-body),
-    Montserrat,
-    sans-serif;
+    var(--af-font-body, Montserrat, sans-serif);
 
-  font-size: clamp(
-    14px,
-    1.1vw,
-    16px
-  );
+  font-size:
+    clamp(14px, 1.07vw, 16px);
 
   font-weight: 400;
 
-  line-height: 1.75;
+  line-height: 1.8;
   letter-spacing: -0.008em;
 
   text-wrap: pretty;
@@ -175,18 +181,59 @@
   margin-inline: auto;
 }
 
-/* -----------------------------------------
-   Existing product / editorial composition
+/* ========================================
+   HERO
+======================================== */
 
-   Preserve the established relationships
-   between text and the staged 3D product.
------------------------------------------ */
+.section[id="hero"] {
+  padding-top: clamp(144px, 18vh, 208px);
+  padding-bottom: clamp(88px, 11vh, 145px);
+}
 
-.section[id="hero"] > .content,
-.section[id="acoustic-reveal"] > .content,
-.section[id="finale"] > .content {
-  margin-left: 0;
-  margin-right: auto;
+.section[id="hero"] > .content {
+  width: min(100%, 440px);
+  max-width: 440px;
+}
+
+.section[id="hero"] .heading {
+  font-size: clamp(56px, 5.5vw, 82px);
+  line-height: 1.035;
+  letter-spacing: -0.052em;
+  text-wrap: balance;
+}
+
+.section[id="hero"] .description {
+  max-width: 40ch;
+  margin-top: 26px;
+
+  font-size: clamp(15px, 1.15vw, 17px);
+  line-height: 1.72;
+}
+
+
+/* af-hero-refinement-v2 */
+
+.section[id="hero"] .eyebrow {
+  padding-left: 14px;
+  margin-bottom: 24px;
+
+  border-left: 2px solid var(--af-accent);
+}
+
+.section[id="hero"] > .content > a {
+  min-height: 52px;
+  padding-inline: 26px;
+  letter-spacing: 0.012em;
+}
+/* ========================================
+   STORY SECTION RHYTHM
+======================================== */
+
+.section[id="performance"],
+.section[id="detail"],
+.section[id="acoustic-reveal"],
+.section[id="finale"] {
+  align-items: center;
 }
 
 .section[id="performance"] > .content,
@@ -195,16 +242,15 @@
   margin-right: 0;
 }
 
-/* -----------------------------------------
-   Configurator composition
+.section[id="acoustic-reveal"] > .content,
+.section[id="finale"] > .content {
+  margin-left: 0;
+  margin-right: auto;
+}
 
-   The configurator contains two siblings:
-
-   1. Editorial copy
-   2. Family / variant controls
-
-   Both remain inside the right-side lane.
------------------------------------------ */
+/* ========================================
+   CONFIGURATOR
+======================================== */
 
 .section[id="configurator"] {
   flex-direction: column;
@@ -212,33 +258,32 @@
   align-items: flex-end;
   justify-content: center;
 
-  min-height: max(
-    100svh,
-    840px
-  );
+  min-height: max(100svh, 960px);
 
-  gap: clamp(
-    16px,
-    2.4vh,
-    28px
-  );
+  gap: clamp(18px, 2.8vh, 30px);
+
+  padding-block:
+    clamp(88px, 10vh, 130px);
 }
 
 .section[id="configurator"] > .content {
   flex: 0 0 auto;
 
-  width: min(100%, 420px);
-  max-width: 420px;
+  width: min(100%, 460px);
+  max-width: 460px;
 
   margin-left: auto;
   margin-right: 0;
 }
 
-.section[id="configurator"]
-  > .content
-  .description {
+.section[id="configurator"] .heading {
+  font-size:
+    clamp(44px, 4.8vw, 69px);
+}
+
+.section[id="configurator"] .description {
+  max-width: 41ch;
   margin-top: 16px;
-  max-width: 320px;
 }
 
 .section[id="configurator"] > div:last-child {
@@ -246,7 +291,8 @@
 
   align-self: flex-end;
 
-  max-width: 420px;
+  width: min(100%, 460px);
+  max-width: 460px;
   min-width: 0;
 
   margin-left: auto;
@@ -255,108 +301,78 @@
   pointer-events: auto;
 }
 
-/* -----------------------------------------
-   Laptop / compact landscape tablet
------------------------------------------ */
+/* ========================================
+   LAPTOP / COMPACT LANDSCAPE
+======================================== */
 
-@media (max-width: 1100px) and (min-aspect-ratio: 3/4) {
+@media (max-width: 1180px) and (min-aspect-ratio: 3/4) {
   .section {
     padding-inline:
-      clamp(22px, 5.2vw, 58px);
+      var(--af-page-gutter, 24px);
 
-    gap: clamp(
-      20px,
-      3vw,
-      36px
-    );
+    gap: clamp(24px, 3vw, 42px);
   }
 
   .content {
-    flex-basis: min(
-      39vw,
-      420px
-    );
+    flex-basis:
+      clamp(285px, 37vw, 430px);
 
-    width: min(
-      39vw,
-      420px
-    );
-
-    max-width: min(
-      39vw,
-      420px
-    );
+    width: min(100%, 430px);
+    max-width: 430px;
   }
 
   .heading {
-    font-size: clamp(
-      39px,
-      5.1vw,
-      69px
-    );
+    font-size:
+      clamp(42px, 5vw, 64px);
+  }
+
+  .section[id="hero"] .heading {
+    font-size:
+      clamp(48px, 5.8vw, 75px);
   }
 
   .description {
-    max-width: 310px;
+    max-width: 40ch;
 
-    font-size: clamp(
-      13px,
-      1.35vw,
-      15px
-    );
+    font-size:
+      clamp(13px, 1.3vw, 15px);
 
-    line-height: 1.7;
+    line-height: 1.72;
   }
 
   .section[id="configurator"] > .content,
   .section[id="configurator"] > div:last-child {
-    width: min(
-      42vw,
-      420px
-    );
-
-    max-width: min(
-      42vw,
-      420px
-    );
+    max-width: min(43vw, 460px);
   }
 
   .section[id="configurator"] {
-    min-height: max(
-      100svh,
-      880px
-    );
+    min-height: max(100svh, 960px);
   }
 }
 
-/* -----------------------------------------
-   Short landscape viewports
------------------------------------------ */
+/* ========================================
+   SHORT LANDSCAPE VIEWPORTS
+======================================== */
 
-@media (max-height: 680px) and (min-aspect-ratio: 3/4) {
+@media (max-height: 720px) and (min-aspect-ratio: 3/4) {
   .section {
-    min-height: max(
-      100svh,
-      660px
-    );
+    min-height: max(100svh, 660px);
 
-    padding-block: 34px;
+    padding-block: 65px;
+  }
+
+  .section[id="hero"] {
+    padding-top: 125px;
   }
 
   .section[id="configurator"] {
-    min-height: max(
-      100svh,
-      920px
-    );
+    min-height: max(100svh, 980px);
   }
 }
 
-/* -----------------------------------------
-   Portrait layouts
-
-   Editorial content remains above the
-   primary 3D viewing area.
------------------------------------------ */
+/* ========================================
+   PORTRAIT TABLETS & PHONES
+======================================== */
 
 @media (max-aspect-ratio: 3/4) {
   .section {
@@ -365,29 +381,27 @@
     align-items: flex-start;
     justify-content: flex-start;
 
-    gap: 0;
-
     min-height: 100svh;
 
     padding-inline:
-      clamp(20px, 5vw, 36px);
+      var(--af-page-gutter, 20px);
 
     padding-top:
-      clamp(28px, 5vh, 52px);
+      clamp(36px, 6vh, 68px);
 
     padding-bottom:
-      clamp(52px, 9vh, 110px);
+      clamp(58px, 9vh, 110px);
+
+    gap: 0;
   }
 
   .content {
     flex: 0 0 auto;
 
-    width: min(
-      100%,
-      320px
-    );
+    width: min(100%, 440px);
+    max-width: 440px;
 
-    max-width: 320px;
+    margin-inline: 0;
   }
 
   .left,
@@ -398,97 +412,108 @@
   }
 
   .eyebrow {
-    margin-bottom: 12px;
+    margin-bottom: 13px;
 
     font-size: 10px;
-    line-height: 1.4;
     letter-spacing: 0.15em;
   }
 
   .heading {
-    max-width: 13ch;
+    max-width: 100%;
 
-    font-size: clamp(
-      32px,
-      7vw,
-      44px
-    );
+    font-size:
+      clamp(35px, 6.4vw, 52px);
 
     line-height: 1.08;
-    letter-spacing: -0.042em;
+    letter-spacing: -0.04em;
   }
 
   .description {
-    max-width: 270px;
+    max-width: 39ch;
 
-    margin-top: 12px;
+    margin-top: 13px;
 
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: clamp(13px, 1.8vw, 15px);
+    line-height: 1.68;
   }
 
   .center .description {
     margin-inline: 0;
   }
 
-  .section[id="hero"] > .content,
-  .section[id="acoustic-reveal"] > .content,
-  .section[id="finale"] > .content,
+  /* Hero: allow room below fixed navigation */
+
+  .section[id="hero"] {
+    padding-top:
+      clamp(118px, 14vh, 170px);
+  }
+
+  .section[id="hero"] > .content {
+    max-width: 440px;
+  }
+
+  .section[id="hero"] .heading {
+    font-size:
+      clamp(42px, 7.2vw, 63px);
+  }
+
+  .section[id="hero"] .description {
+    margin-top: 16px;
+  }
+
+  .section[id="hero"] > .content > div {
+    max-width: 100%;
+  }
+
+  /*
+   * Keep editorial content above the
+   * product viewing area on portrait.
+   */
+
   .section[id="performance"] > .content,
-  .section[id="detail"] > .content {
+  .section[id="detail"] > .content,
+  .section[id="acoustic-reveal"] > .content,
+  .section[id="finale"] > .content {
     margin-inline: 0;
   }
 
-  /* Hero family selector */
-
-  .section[id="hero"]
-    > .content
-    > div:last-child {
-    margin-top: 16px !important;
-  }
-
-  /* Mobile configurator stack */
+  /* Mobile configurator */
 
   .section[id="configurator"] {
     align-items: flex-start;
     justify-content: flex-start;
 
-    min-height: max(
-      100svh,
-      980px
-    );
+    min-height: max(100svh, 1020px);
 
-    gap: 22px;
+    padding-top: 46px;
+
+    gap: 24px;
   }
 
   .section[id="configurator"] > .content {
     flex: 0 0 auto;
 
-    width: min(
-      100%,
-      320px
-    );
-
-    max-width: 320px;
+    width: min(100%, 440px);
+    max-width: 440px;
 
     margin-inline: 0;
   }
 
-  .section[id="configurator"]
-    > .content
-    .description {
-    max-width: 270px;
+  .section[id="configurator"] .heading {
+    font-size:
+      clamp(35px, 6.4vw, 52px);
+  }
+
+  .section[id="configurator"] .description {
+    max-width: 39ch;
+
     margin-top: 12px;
   }
 
   .section[id="configurator"] > div:last-child {
     align-self: flex-start;
 
-    width: min(
-      100%,
-      460px
-    ) !important;
-
+    width: min(100%, 460px);
     max-width: 100%;
 
     margin-inline: 0;
@@ -497,34 +522,62 @@
   }
 }
 
-/* -----------------------------------------
-   Very narrow phones
------------------------------------------ */
+/* ========================================
+   NARROW MOBILE
+======================================== */
 
-@media (max-width: 380px) {
+@media (max-width: 480px) {
   .section {
-    padding-inline: 18px;
+    padding-inline:
+      var(--af-page-gutter, 20px);
   }
 
   .content {
-    width: min(
-      100%,
-      300px
-    );
-
-    max-width: 300px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .heading {
-    font-size: clamp(
-      30px,
-      8.5vw,
-      38px
-    );
+    font-size:
+      clamp(33px, 9vw, 43px);
+  }
+
+  .section[id="hero"] .heading {
+    font-size:
+      clamp(39px, 10.2vw, 50px);
   }
 
   .description {
-    max-width: 255px;
-    font-size: 12.5px;
+    max-width: 36ch;
+
+    font-size: 13px;
+    line-height: 1.66;
+  }
+
+  .section[id="configurator"] {
+    min-height: max(100svh, 1060px);
+  }
+
+  .section[id="configurator"] > .content {
+    width: 100%;
+  }
+
+  .section[id="configurator"] > div:last-child {
+    width: 100%;
   }
 }
+
+/* ========================================
+   ACCESSIBILITY / MOTION
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .story *,
+  .story *::before,
+  .story *::after {
+    scroll-behavior: auto;
+  }
+}
+
+
+

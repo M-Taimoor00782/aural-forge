@@ -1,631 +1,568 @@
 ﻿"use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const ROOT_CLASS = "af-custom-cursor-active";
+const POINTER_QUERY = "(hover: hover) and (pointer: fine)";
+const RING_SIZE = 28;
+const ICON_WIDTH = 22;
+const ICON_HEIGHT = 30;
 
-const SELECTABLE = [
+// Both icon paths have their pointed tip at (1.5, 1.5).
+const TIP_OFFSET_X = (1.5 / 28) * ICON_WIDTH;
+const TIP_OFFSET_Y = (1.5 / 38) * ICON_HEIGHT;
+
+const ICON_FOLLOW = 0.44;
+const MAX_ICON_LAG = 2.5;
+
+const ARROW_PATH =
+  "M1.5 1.5L20.5 19.5L12.6 20.8L17.9 31.8L13.6 33.2L8.3 22.2L1.5 27.8V1.5Z";
+
+// One hand shape replaces the arrow.
+// Its pointing-finger tip is aligned with the arrow tip.
+const HAND_PATH =
+  "M10 4 C10 2.5 11.2 1.5 12.5 1.5 " +
+  "C14 1.5 15 2.6 15 4 V14 " +
+  "C15 12.8 16 12 17.2 12 " +
+  "C18.8 12 19.6 13 19.6 14.5 " +
+  "C20.3 13.7 21 13.4 22.1 13.7 " +
+  "C23.4 14 23.9 15 23.9 16 " +
+  "C24.8 15.6 25.7 15.9 26.4 16.6 " +
+  "C27.2 17.4 27.1 18.6 27 20 L26 26 " +
+  "C25.5 29.5 23.1 32.5 19.5 33 H13.2 " +
+  "C10.6 33 8.5 31.5 7.3 29.3 L2.8 21 " +
+  "C2.3 19.8 2.8 18.2 4 17.5 " +
+  "C5.1 16.8 6.5 17.1 7.4 18.3 L10 21 Z";
+
+const INTERACTIVE_SELECTOR = [
   "a[href]",
-  "button",
+  "button:not(:disabled)",
   "summary",
-  "select",
-  "[role='button']",
-  "[role='link']",
-  "[role='tab']",
-  "[data-af-cursor='interactive']",
-].join(",");
+  "select:not(:disabled)",
+  '[role="button"]',
+  '[role="link"]',
+  '[role="tab"]',
+  '[role="checkbox"]',
+  '[role="switch"]',
+  "[data-af-drawer-trigger]",
+].join(", ");
 
-const EDITABLE = [
-  "input:not([type='button']):not([type='submit']):not([type='reset'])",
+const TEXT_SELECTOR = [
   "textarea",
-  "select",
-  "[contenteditable='true']",
-].join(",");
+  'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"])',
+  '[contenteditable="true"]',
+].join(", ");
 
-function setXY(element, x, y, centered = false) {
-  if (!element) return;
+const VALID_MODES = new Set([
+  "default",
+  "interactive",
+  "pressed",
+  "drag",
+  "move",
+  "grab",
+  "grabbing",
+]);
 
-  element.style.transform = centered
-    ? `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`
-    : `translate3d(${x}px, ${y}px, 0)`;
+function resolveMode(target, pressed) {
+  if (!(target instanceof Element)) {
+    return "default";
+  }
+
+  const explicitElement = target.closest(
+    "[data-af-cursor], [data-cursor]"
+  );
+
+  const declared = (
+    explicitElement?.getAttribute("data-af-cursor") ??
+    explicitElement?.getAttribute("data-cursor") ??
+    ""
+  ).toLowerCase().trim();
+
+  let mode = "default";
+
+  if (VALID_MODES.has(declared)) {
+    mode = declared;
+  } else if (target.closest(TEXT_SELECTOR)) {
+    mode = "text";
+  } else if (target.closest(INTERACTIVE_SELECTOR)) {
+    mode = "interactive";
+  } else {
+    const cssCursor = window.getComputedStyle(target).cursor;
+
+    if (cssCursor === "grab") mode = "grab";
+    else if (cssCursor === "grabbing") mode = "grabbing";
+    else if (cssCursor === "move") mode = "move";
+    else if (cssCursor === "pointer") mode = "interactive";
+  }
+
+  if (pressed) {
+    if (mode === "drag" || mode === "grab" || mode === "grabbing") {
+      return "grabbing";
+    }
+
+    if (mode === "interactive") {
+      return "pressed";
+    }
+  }
+
+  return mode;
 }
 
 export default function ExperienceCursor() {
-  const rootRef = useRef(null);
-  const dotRef = useRef(null);
+  const [enabled, setEnabled] = useState(false);
+  const [mode, setMode] = useState("default");
+  const [pressed, setPressed] = useState(false);
+  const [visible, setVisible] = useState(false);
+
   const ringRef = useRef(null);
-  const arrowRef = useRef(null);
-  const labelRef = useRef(null);
+  const iconRef = useRef(null);
 
   useEffect(() => {
-    const root = rootRef.current;
-    const dot = dotRef.current;
+    const media = window.matchMedia(POINTER_QUERY);
+    const update = () => setEnabled(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+
+    return () => {
+      media.removeEventListener("change", update);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+
     const ring = ringRef.current;
-    const arrow = arrowRef.current;
-    const label = labelRef.current;
+    const icon = iconRef.current;
 
-    if (!root || !dot || !ring || !arrow || !label) {
-      return;
-    }
+    if (!ring || !icon) return;
 
-    const finePointer = window.matchMedia(
-      "(hover: hover) and (pointer: fine)"
-    );
-
+    const root = document.documentElement;
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     );
 
-    const cursorCss = document.createElement("style");
+    const pointer = { x: 0, y: 0 };
+    const iconPosition = { x: 0, y: 0 };
 
-    cursorCss.dataset.auralForgeCursor = "true";
-
-    cursorCss.textContent = `
-      html.${ROOT_CLASS},
-      html.${ROOT_CLASS} body,
-      html.${ROOT_CLASS} * {
-        cursor: none !important;
-      }
-
-      html.${ROOT_CLASS} input:not([type="button"]):not([type="submit"]):not([type="reset"]),
-      html.${ROOT_CLASS} textarea,
-      html.${ROOT_CLASS} select,
-      html.${ROOT_CLASS} [contenteditable="true"] {
-        cursor: text !important;
-      }
-    `;
-
-    document.head.appendChild(cursorCss);
-
-    const point = { x: 0, y: 0 };
-    const ringPosition = { x: 0, y: 0 };
-    const arrowPosition = { x: 0, y: 0 };
-
-    let enabled = false;
-    let inside = false;
-    let initialized = false;
-    let isEditable = false;
-    let isSelectable = false;
-    let isPressed = false;
-    let inspecting = false;
-
+    let positioned = false;
+    let down = false;
+    let currentMode = "default";
+    let currentVisible = false;
     let frame = 0;
-    let previousTime = 0;
 
-    function setVisible(visible) {
-      root.style.opacity =
-        enabled && inside && visible && !isEditable
-          ? "1"
-          : "0";
-    }
-
-    function updateFeedback() {
-      const interactive =
-        inspecting || isSelectable;
-
-      ring.style.width = interactive
-        ? "42px"
-        : "34px";
-
-      ring.style.height = interactive
-        ? "42px"
-        : "34px";
-
-      ring.style.borderColor = inspecting
-        ? "#F6B54E"
-        : isSelectable
-          ? "#F3F3F4"
-          : "rgba(243,243,244,0.75)";
-
-      ring.style.background = inspecting
-        ? "rgba(246,181,78,0.09)"
-        : "rgba(243,243,244,0.035)";
-
-      dot.style.background = inspecting
-        ? "#F6B54E"
-        : "#F3F3F4";
-
-      dot.style.width = isPressed
-        ? "5px"
-        : "4px";
-
-      dot.style.height = isPressed
-        ? "5px"
-        : "4px";
-
-      const hint = inspecting
-        ? "MOVE"
-        : isSelectable
-          ? "SELECT"
-          : "";
-
-      label.textContent = hint;
-
-      label.style.opacity = hint
-        ? "1"
-        : "0";
-    }
-
-    function schedule() {
-      if (
-        !frame &&
-        enabled &&
-        inside &&
-        initialized
-      ) {
-        previousTime = 0;
-
-        frame = window.requestAnimationFrame(
-          animate
-        );
+    const setCursorVisible = (next) => {
+      if (next !== currentVisible) {
+        currentVisible = next;
+        setVisible(next);
       }
-    }
+    };
 
-    function animate(timestamp) {
-      frame = 0;
+    const setCursorMode = (target) => {
+      const next = resolveMode(target, down);
 
-      if (!enabled || !inside) {
-        return;
+      if (next !== currentMode) {
+        currentMode = next;
+        setMode(next);
       }
 
-      const delta = previousTime
-        ? Math.min(
-            0.064,
-            (timestamp - previousTime) / 1000
-          )
-        : 1 / 60;
+      setCursorVisible(positioned && next !== "text");
+    };
 
-      previousTime = timestamp;
+    const drawRing = () => {
+      ring.style.transform = `translate3d(${
+        pointer.x - RING_SIZE / 2
+      }px, ${pointer.y - RING_SIZE / 2}px, 0)`;
+    };
 
-      // 1. Dot is fixed to the actual pointer.
-      setXY(
-        dot,
-        point.x,
-        point.y,
-        true
-      );
+    const getIconTarget = () => ({
+      x: pointer.x - TIP_OFFSET_X,
+      y: pointer.y - TIP_OFFSET_Y,
+    });
 
-      // 2. Ring follows quickly.
-      const ringAlpha =
-        1 - Math.exp(-delta / 0.048);
+    const drawIcon = () => {
+      icon.style.transform = `translate3d(${
+        iconPosition.x
+      }px, ${iconPosition.y}px, 0)`;
+    };
 
-      ringPosition.x +=
-        (point.x - ringPosition.x) *
-        ringAlpha;
-
-      ringPosition.y +=
-        (point.y - ringPosition.y) *
-        ringAlpha;
-
-      setXY(
-        ring,
-        ringPosition.x,
-        ringPosition.y,
-        true
-      );
-
-      // 3. Arrow follows independently.
-      // It remains above and left of the
-      // circle, never ahead/right.
-      const arrowAlpha =
-        1 - Math.exp(-delta / 0.17);
-
-      const arrowTargetX =
-        point.x - 13;
-
-      const arrowTargetY =
-        point.y - 22;
-
-      arrowPosition.x +=
-        (arrowTargetX - arrowPosition.x) *
-        arrowAlpha;
-
-      arrowPosition.y +=
-        (arrowTargetY - arrowPosition.y) *
-        arrowAlpha;
-
-      arrowPosition.x = Math.min(
-        arrowPosition.x,
-        ringPosition.x - 12
-      );
-
-      arrowPosition.y = Math.min(
-        arrowPosition.y,
-        ringPosition.y - 17
-      );
-
-      setXY(
-        arrow,
-        arrowPosition.x,
-        arrowPosition.y
-      );
-
-      setXY(
-        label,
-        ringPosition.x + 29,
-        ringPosition.y + 27
-      );
-
-      const unsettled =
-        Math.abs(
-          point.x - ringPosition.x
-        ) > 0.1 ||
-        Math.abs(
-          point.y - ringPosition.y
-        ) > 0.1 ||
-        Math.abs(
-          arrowTargetX - arrowPosition.x
-        ) > 0.1 ||
-        Math.abs(
-          arrowTargetY - arrowPosition.y
-        ) > 0.1;
-
-      if (unsettled) {
-        frame = window.requestAnimationFrame(
-          animate
-        );
-      }
-    }
-
-    function updateMode() {
-      enabled =
-        finePointer.matches &&
-        !reducedMotion.matches;
-
-      document.documentElement.classList.toggle(
-        ROOT_CLASS,
-        enabled
-      );
-
-      if (!enabled) {
-        inside = false;
-        inspecting = false;
-        isPressed = false;
-        isEditable = false;
-        isSelectable = false;
-
-        if (frame) {
-          window.cancelAnimationFrame(frame);
-        }
-
-        frame = 0;
-      }
-
-      updateFeedback();
-      setVisible(enabled);
-    }
-
-    function onPointerMove(event) {
-      if (
-        !enabled ||
-        event.pointerType === "touch"
-      ) {
-        return;
-      }
-
-      const target = event.target;
-
-      isEditable =
-        target instanceof Element &&
-        Boolean(
-          target.closest(EDITABLE)
-        );
-
-      isSelectable =
-        target instanceof Element &&
-        Boolean(
-          target.closest(SELECTABLE)
-        );
-
-      point.x = event.clientX;
-      point.y = event.clientY;
-
-      inside = true;
-
-      if (!initialized) {
-        initialized = true;
-
-        ringPosition.x = point.x;
-        ringPosition.y = point.y;
-
-        arrowPosition.x =
-          point.x - 13;
-
-        arrowPosition.y =
-          point.y - 22;
-
-        setXY(
-          ring,
-          ringPosition.x,
-          ringPosition.y,
-          true
-        );
-
-        setXY(
-          arrow,
-          arrowPosition.x,
-          arrowPosition.y
-        );
-      }
-
-      // Dot updates immediately, even
-      // between animation frames.
-      setXY(
-        dot,
-        point.x,
-        point.y,
-        true
-      );
-
-      updateFeedback();
-      setVisible(true);
-      schedule();
-    }
-
-    function onPointerDown(event) {
-      if (
-        !enabled ||
-        event.pointerType === "touch"
-      ) {
-        return;
-      }
-
-      isPressed = true;
-      updateFeedback();
-    }
-
-    function onPointerUp() {
-      isPressed = false;
-      updateFeedback();
-    }
-
-    // Event emitted by the shared 3D
-    // ProductInspectionController.
-    function onInspection(event) {
-      inspecting = Boolean(
-        event.detail?.active ??
-        event.detail?.dragging
-      );
-
-      updateFeedback();
-      schedule();
-    }
-
-    function onPointerOut(event) {
-      if (!event.relatedTarget) {
-        inside = false;
-        setVisible(false);
-
-        if (frame) {
-          window.cancelAnimationFrame(frame);
-        }
-
-        frame = 0;
-      }
-    }
-
-    function onWindowBlur() {
-      inside = false;
-      inspecting = false;
-      isPressed = false;
-
-      updateFeedback();
-      setVisible(false);
-    }
-
-    window.addEventListener(
-      "pointermove",
-      onPointerMove,
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "pointerdown",
-      onPointerDown,
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "pointerup",
-      onPointerUp,
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "pointercancel",
-      onPointerUp,
-      { passive: true }
-    );
-
-    document.addEventListener(
-      "pointerout",
-      onPointerOut
-    );
-
-    window.addEventListener(
-      "blur",
-      onWindowBlur
-    );
-
-    window.addEventListener(
-      "aural-forge:inspection",
-      onInspection
-    );
-
-    finePointer.addEventListener(
-      "change",
-      updateMode
-    );
-
-    reducedMotion.addEventListener(
-      "change",
-      updateMode
-    );
-
-    updateMode();
-
-    return () => {
+    const stopAnimation = () => {
       if (frame) {
         window.cancelAnimationFrame(frame);
+        frame = 0;
+      }
+    };
+
+    const tick = () => {
+      frame = 0;
+
+      if (!positioned) return;
+
+      const target = getIconTarget();
+
+      if (reducedMotion.matches) {
+        iconPosition.x = target.x;
+        iconPosition.y = target.y;
+      } else {
+        iconPosition.x +=
+          (target.x - iconPosition.x) * ICON_FOLLOW;
+
+        iconPosition.y +=
+          (target.y - iconPosition.y) * ICON_FOLLOW;
+
+        const dx = target.x - iconPosition.x;
+        const dy = target.y - iconPosition.y;
+        const distance = Math.hypot(dx, dy);
+
+        // Never let the arrow/hand float away
+        // from the ring's center dot.
+        if (distance > MAX_ICON_LAG) {
+          const ratio = MAX_ICON_LAG / distance;
+
+          iconPosition.x = target.x - dx * ratio;
+          iconPosition.y = target.y - dy * ratio;
+        }
       }
 
-      window.removeEventListener(
-        "pointermove",
-        onPointerMove
+      drawIcon();
+
+      const remaining = Math.hypot(
+        target.x - iconPosition.x,
+        target.y - iconPosition.y
       );
 
-      window.removeEventListener(
-        "pointerdown",
-        onPointerDown
-      );
-
-      window.removeEventListener(
-        "pointerup",
-        onPointerUp
-      );
-
-      window.removeEventListener(
-        "pointercancel",
-        onPointerUp
-      );
-
-      document.removeEventListener(
-        "pointerout",
-        onPointerOut
-      );
-
-      window.removeEventListener(
-        "blur",
-        onWindowBlur
-      );
-
-      window.removeEventListener(
-        "aural-forge:inspection",
-        onInspection
-      );
-
-      finePointer.removeEventListener(
-        "change",
-        updateMode
-      );
-
-      reducedMotion.removeEventListener(
-        "change",
-        updateMode
-      );
-
-      document.documentElement.classList.remove(
-        ROOT_CLASS
-      );
-
-      cursorCss.remove();
+      if (remaining > 0.08) {
+        frame = window.requestAnimationFrame(tick);
+      }
     };
-  }, []);
 
-  const floating = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    pointerEvents: "none",
-    willChange: "transform",
-  };
+    const schedule = () => {
+      if (!frame) {
+        frame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    const updatePointer = (event) => {
+      if (event.pointerType !== "mouse") {
+        setCursorVisible(false);
+        return;
+      }
+
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+
+      drawRing();
+
+      if (!positioned) {
+        positioned = true;
+
+        const target = getIconTarget();
+        iconPosition.x = target.x;
+        iconPosition.y = target.y;
+
+        drawIcon();
+      } else {
+        schedule();
+      }
+
+      const target =
+        document.elementFromPoint(pointer.x, pointer.y) ||
+        event.target;
+
+      setCursorMode(target);
+    };
+
+    const onDown = (event) => {
+      if (event.pointerType !== "mouse") return;
+
+      down = true;
+      setPressed(true);
+      setCursorMode(
+        document.elementFromPoint(event.clientX, event.clientY) ||
+          event.target
+      );
+    };
+
+    const onUp = (event) => {
+      if (event.pointerType !== "mouse") return;
+
+      down = false;
+      setPressed(false);
+      setCursorMode(
+        document.elementFromPoint(event.clientX, event.clientY) ||
+          event.target
+      );
+    };
+
+    const onCancel = () => {
+      down = false;
+      setPressed(false);
+    };
+
+    const onMouseOut = (event) => {
+      if (event.relatedTarget !== null) return;
+
+      positioned = false;
+      down = false;
+
+      stopAnimation();
+      setPressed(false);
+      setCursorVisible(false);
+    };
+
+    const onBlur = () => {
+      positioned = false;
+      down = false;
+
+      stopAnimation();
+      setPressed(false);
+      setCursorVisible(false);
+    };
+
+    const onScroll = () => {
+      if (!positioned) return;
+
+      setCursorMode(
+        document.elementFromPoint(pointer.x, pointer.y)
+      );
+    };
+
+    // Single custom cursor owns pointer presentation.
+    // Suppress native link/button hand cursors.
+    root.setAttribute("data-af-single-cursor", "on");
+
+    document.addEventListener("pointermove", updatePointer, true);
+    document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("pointercancel", onCancel, true);
+    document.addEventListener("mouseout", onMouseOut, true);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      stopAnimation();
+      root.removeAttribute("data-af-single-cursor");
+
+      document.removeEventListener("pointermove", updatePointer, true);
+      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointerup", onUp, true);
+      document.removeEventListener("pointercancel", onCancel, true);
+      document.removeEventListener("mouseout", onMouseOut, true);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [enabled]);
+
+  if (!enabled) return null;
+
+  const showHand = mode === "interactive" || mode === "pressed";
+
+  const label =
+    mode === "move"
+      ? "MOVE"
+      : ["drag", "grab", "grabbing"].includes(mode)
+        ? "DRAG"
+        : "";
 
   return (
-    <div
-      ref={rootRef}
-      aria-hidden="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 2147483000,
-        pointerEvents: "none",
-        opacity: 0,
-        transition: "opacity 120ms ease",
-      }}
-    >
-      {/* Arrow — behind and above the circle */}
+    <>
       <div
-        ref={arrowRef}
-        style={{
-          ...floating,
-          zIndex: 1,
-          width: 20,
-          height: 26,
-        }}
+        className="af-single-cursor"
+        data-visible={visible}
+        data-mode={mode}
+        data-pressed={pressed}
+        aria-hidden="true"
       >
+        <div ref={ringRef} className="af-single-cursor-ring">
+          <span className="af-single-cursor-outline" />
+          <span className="af-single-cursor-dot" />
+
+          {label && (
+            <span className="af-single-cursor-label">
+              {label}
+            </span>
+          )}
+        </div>
+
+        {/* Exactly ONE icon exists in the DOM.
+            The same SVG changes between arrow and hand. */}
         <svg
-          width="20"
-          height="26"
-          viewBox="0 0 20 26"
-          fill="none"
+          ref={iconRef}
+          className="af-single-cursor-icon"
+          width={ICON_WIDTH}
+          height={ICON_HEIGHT}
+          viewBox="0 0 28 38"
           xmlns="http://www.w3.org/2000/svg"
-          style={{
-            display: "block",
-            overflow: "visible",
-          }}
+          focusable="false"
         >
           <path
-            d="M1.5 1.5L1.5 19.2L6.5 15.4L10.8 24L14.2 22L10 13.4L17.5 12.8L1.5 1.5Z"
-            fill="#F3F3F4"
-            stroke="#0D0D0D"
-            strokeWidth="1.3"
+            d={showHand ? HAND_PATH : ARROW_PATH}
+            transform={showHand ? "translate(-11 0)" : undefined}
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth="0.45"
             strokeLinejoin="round"
           />
         </svg>
       </div>
 
-      {/* Circular ring — follows closely */}
-      <div
-        ref={ringRef}
-        style={{
-          ...floating,
-          zIndex: 2,
-          width: 34,
-          height: 34,
-          border:
-            "1.5px solid rgba(243,243,244,0.75)",
-          borderRadius: "50%",
-          background:
-            "rgba(243,243,244,0.035)",
-          boxSizing: "border-box",
+      <style>{`
+        @media (hover: hover) and (pointer: fine) {
+          html[data-af-single-cursor="on"],
+          html[data-af-single-cursor="on"] *,
+          html[data-af-single-cursor="on"] *::before,
+          html[data-af-single-cursor="on"] *::after {
+            cursor: none !important;
+          }
+
+          html[data-af-single-cursor="on"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
+          html[data-af-single-cursor="on"] textarea,
+          html[data-af-single-cursor="on"] [contenteditable="true"] {
+            cursor: text !important;
+          }
+        }
+
+        .af-single-cursor {
+          position: fixed;
+          inset: 0;
+          z-index: 2147483647;
+          pointer-events: none;
+          visibility: hidden;
+          opacity: 0;
+          color: #F3F3F4;
+          transition: opacity 120ms ease, visibility 120ms ease;
+        }
+
+        .af-single-cursor[data-visible="true"] {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        /* Light-mode arrow is SOLID BLACK. */
+        :root[data-af-theme="light"] .af-single-cursor {
+          color: #111111;
+        }
+
+        :root[data-af-theme="dark"] .af-single-cursor {
+          color: #F3F3F4;
+        }
+
+        .af-single-cursor-ring {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: ${RING_SIZE}px;
+          height: ${RING_SIZE}px;
+          z-index: 2;
+          pointer-events: none;
+          will-change: transform;
+        }
+
+        /* Exactly ONE ring border. */
+        .af-single-cursor-outline {
+          position: absolute;
+          inset: 0;
+          box-sizing: border-box;
+          border: 1.5px solid currentColor;
+          border-radius: 50%;
+          background: transparent;
           transition:
-            "width 160ms ease, height 160ms ease, border-color 160ms ease, background-color 160ms ease",
-        }}
-      />
+            border-color 140ms ease,
+            background-color 140ms ease,
+            transform 140ms ease;
+        }
 
-      {/* Center dot — exact pointer position */}
-      <div
-        ref={dotRef}
-        style={{
-          ...floating,
-          zIndex: 3,
-          width: 4,
-          height: 4,
-          borderRadius: "50%",
-          background: "#F3F3F4",
-          boxShadow:
-            "0 0 8px rgba(243,243,244,0.25)",
-        }}
-      />
+        .af-single-cursor-dot {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: currentColor;
+          transform: translate(-50%, -50%);
+        }
 
-      {/* Interaction feedback */}
-      <div
-        ref={labelRef}
-        style={{
-          ...floating,
-          zIndex: 4,
-          color: "#F3F3F4",
-          fontFamily: "Inter, sans-serif",
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: "0.14em",
-          whiteSpace: "nowrap",
-          opacity: 0,
-          transition: "opacity 160ms ease",
-          textShadow:
-            "0 1px 4px #0D0D0D",
-        }}
-      />
-    </div>
+        .af-single-cursor-icon {
+          position: absolute;
+          left: 0;
+          top: 0;
+          z-index: 1;
+          overflow: visible;
+          pointer-events: none;
+          will-change: transform;
+        }
+
+        /* af-hand-layer-fix-v1
+           Keep the default arrow behind the ring.
+           Bring the hand in front of the filled
+           interactive ring so it remains visible. */
+        .af-single-cursor[data-mode="interactive"]
+          .af-single-cursor-icon,
+        .af-single-cursor[data-mode="pressed"]
+          .af-single-cursor-icon {
+          z-index: 3;
+        }
+        /* Interactive ring treatment. */
+        .af-single-cursor[data-mode="interactive"]
+          .af-single-cursor-outline,
+        .af-single-cursor[data-mode="pressed"]
+          .af-single-cursor-outline {
+          background: var(--af-accent, #F6B54E);
+          border-color: var(--af-accent, #F6B54E);
+        }
+
+        .af-single-cursor[data-mode="interactive"]
+          .af-single-cursor-dot,
+        .af-single-cursor[data-mode="pressed"]
+          .af-single-cursor-dot {
+          background: var(--af-background, #0D0D0D);
+        }
+
+        .af-single-cursor[data-mode="drag"]
+          .af-single-cursor-outline,
+        .af-single-cursor[data-mode="move"]
+          .af-single-cursor-outline,
+        .af-single-cursor[data-mode="grab"]
+          .af-single-cursor-outline,
+        .af-single-cursor[data-mode="grabbing"]
+          .af-single-cursor-outline {
+          border-color: var(--af-accent, #F6B54E);
+        }
+
+        .af-single-cursor[data-pressed="true"]
+          .af-single-cursor-outline {
+          transform: scale(0.94);
+        }
+
+        .af-single-cursor-label {
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 12px);
+          transform: translateX(-50%);
+          padding: 5px 8px;
+          border-radius: 5px;
+          background: var(--af-surface, #1A1819);
+          border: 1px solid var(--af-border-strong, currentColor);
+          color: var(--af-text-primary, #F3F3F4);
+          font: 700 9px/1.2 Inter, sans-serif;
+          letter-spacing: 0.1em;
+          white-space: nowrap;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .af-single-cursor,
+          .af-single-cursor-outline {
+            transition: none;
+          }
+        }
+
+        @media (hover: none), (pointer: coarse) {
+          .af-single-cursor {
+            display: none;
+          }
+        }
+      `}</style>
+    </>
   );
 }
+

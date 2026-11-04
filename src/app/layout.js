@@ -7,15 +7,18 @@
 import "./globals.css";
 
 /*
- * Aural Forge — Locked Typography
+ * AURAL FORGE — ROOT LAYOUT
  *
- * Headings: Saira
- * Body: Montserrat
- * Buttons / CTA: Inter
+ * Locked typography:
+ * Headings — Saira
+ * Body     — Montserrat
+ * Buttons  — Inter
  *
- * Variable fonts allow multiple weights
- * without importing separate font files
- * for each weight.
+ * Global theme:
+ * Dark / Light
+ *
+ * The global UI theme is independent from
+ * product-family and product-variant worlds.
  */
 
 const saira = Saira({
@@ -36,6 +39,52 @@ const inter = Inter({
   display: "swap",
 });
 
+/*
+ * Shared storage key.
+ *
+ * The future header theme toggle must use
+ * this exact key when saving the selection.
+ */
+
+const THEME_STORAGE_KEY =
+  "aural-forge-theme";
+
+/*
+ * Restore the selected theme before
+ * React hydrates the page.
+ *
+ * Default: dark
+ *
+ * Invalid values fall back to dark.
+ * Storage errors do not prevent rendering.
+ *
+ * The script only controls data-af-theme.
+ * It never changes product-world variables.
+ */
+
+const themeBootstrap = `
+(function () {
+  var theme = "dark";
+
+  try {
+    var stored = window.localStorage.getItem(
+      "${THEME_STORAGE_KEY}"
+    );
+
+    if (stored === "light" || stored === "dark") {
+      theme = stored;
+    }
+  } catch (error) {
+    theme = "dark";
+  }
+
+  document.documentElement.setAttribute(
+    "data-af-theme",
+    theme
+  );
+})();
+`;
+
 export const metadata = {
   title: "Aural Forge | Sound, Sculpted.",
   description:
@@ -48,12 +97,22 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-af-theme="dark"
+      suppressHydrationWarning
       className={[
         saira.variable,
         montserrat.variable,
         inter.variable,
       ].join(" ")}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeBootstrap,
+          }}
+        />
+      </head>
+
       <body>{children}</body>
     </html>
   );

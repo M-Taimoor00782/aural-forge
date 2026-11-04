@@ -1,67 +1,98 @@
 ﻿/*
- * AURAL FORGE
- * Global Design System — V2
+ * AURAL FORGE — GLOBAL DESIGN SYSTEM
+ * af-clean-global-foundation-v1
  *
- * Typography
- * Headings: Saira
- * Body: Montserrat
- * Buttons / CTA: Inter
+ * Dark: Palette 3 — Warm
+ * Light: Palette 4 — Cool
  *
- * Palette
- * Premium dark foundation with restrained
- * golden accents and an optional light world.
+ * Saira — Headings
+ * Montserrat — Body and Navigation
+ * Inter — Buttons and UI
  */
 
-:root {
-  /* Locked dark palette */
+/* ========================================
+   BASE + DARK THEME
+======================================== */
+
+:root,
+:root[data-af-theme="dark"] {
   --af-bright-white: #F3F3F4;
   --af-golden-sand: #F6B54E;
   --af-terracotta: #C3783A;
   --af-roasted-coffee: #553114;
   --af-deep-charcoal: #0D0D0D;
 
-  /* Locked light palette */
   --af-pale-grey: #E2E7EA;
   --af-orchid: #8A2BE2;
   --af-indigo: #4B0082;
   --af-slate-grey: #7D868C;
   --af-midnight: #1A1621;
 
-  /* Semantic dark theme */
-  --af-background: var(--af-deep-charcoal);
-  --af-surface: var(--af-midnight);
-  --af-surface-elevated: #25202B;
+  /* Fonts with safe fallbacks */
+  --af-font-heading:
+    var(--font-af-heading, "Saira"),
+    "Saira",
+    sans-serif;
 
-  --af-text-primary: var(--af-bright-white);
+  --af-font-body:
+    var(--font-af-body, "Montserrat"),
+    "Montserrat",
+    sans-serif;
+
+  --af-font-button:
+    var(--font-af-button, "Inter"),
+    "Inter",
+    sans-serif;
+
+  /* Shared layout */
+  --af-container-max: 1390px;
+  --af-page-gutter: clamp(20px, 5vw, 88px);
+  --af-section-space: clamp(80px, 10vw, 150px);
+
+  /* Radius */
+  --af-radius-sm: 8px;
+  --af-radius-md: 12px;
+  --af-radius-lg: 18px;
+
+  /* Motion */
+  --af-transition-fast: 180ms;
+  --af-transition-medium: 320ms;
+  --af-transition-theme: 380ms;
+
+  --af-ease-premium:
+    cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Palette 3 */
+  --af-background: #0D0D0D;
+  --af-surface: #1A1819;
+  --af-surface-elevated: #262324;
+
+  --af-text-primary: #F3F3F4;
   --af-text-secondary: #ADB3BA;
-  --af-text-muted: var(--af-slate-grey);
+  --af-text-muted: #9BA3AA;
 
-  --af-accent: var(--af-golden-sand);
-  --af-accent-secondary: var(--af-terracotta);
-  --af-accent-contrast: var(--af-deep-charcoal);
+  --af-accent: #F6B54E;
+  --af-accent-secondary: #C3783A;
+  --af-accent-soft: #553114;
+  --af-accent-contrast: #0D0D0D;
 
-  --af-border: rgba(243, 243, 244, 0.13);
-  --af-border-strong: rgba(243, 243, 244, 0.23);
+  --af-border: rgba(243,243,244,0.15);
+  --af-border-strong: rgba(243,243,244,0.30);
 
-  --af-focus-ring: var(--af-golden-sand);
+  --af-button-bg: #F6B54E;
+  --af-button-text: #0D0D0D;
+  --af-button-hover-bg: #F3F3F4;
 
-  /* Compatibility with existing variables */
+  --af-input-bg: #1A1819;
+  --af-input-text: #F3F3F4;
+  --af-focus-ring: #F6B54E;
+
   --background: var(--af-background);
   --foreground: var(--af-text-primary);
 
-  /* Typography aliases */
-  --af-font-heading: var(--font-af-heading);
-  --af-font-body: var(--font-af-body);
-  --af-font-button: var(--font-af-button);
-
-  /*
-   * Initial product-world defaults.
-   *
-   * ProductWorldBackdrop may update these
-   * through the existing GSAP family transition.
-   */
+  /* Legacy compatibility */
   --af-world-background: #0D0D0D;
-  --af-world-surface: #1A1621;
+  --af-world-surface: #1A1819;
   --af-world-text: #F3F3F4;
   --af-world-secondary-text: #ADB3BA;
   --af-world-accent: #F6B54E;
@@ -69,35 +100,41 @@
   color-scheme: dark;
 }
 
-/*
- * Optional lighter product-family surface.
- *
- * This defines available semantic values.
- * Individual family worlds will be brought
- * into alignment in their config files.
- */
+/* ========================================
+   LIGHT THEME — PALETTE 4
+======================================== */
+
 :root[data-af-theme="light"] {
-  --af-background: var(--af-pale-grey);
-  --af-surface: #F3F3F4;
-  --af-surface-elevated: #FFFFFF;
+  --af-background: #FFFFFF;
+  --af-surface: #F5F6F8;
+  --af-surface-elevated: #D6DCE1;
 
-  --af-text-primary: var(--af-midnight);
-  --af-text-secondary: #4E4A57;
-  --af-text-muted: var(--af-slate-grey);
+  --af-text-primary: #1A1621;
+  --af-text-secondary: #3D3745;
+  --af-text-muted: #575060;
 
-  --af-accent: var(--af-orchid);
-  --af-accent-secondary: var(--af-indigo);
-  --af-accent-contrast: var(--af-bright-white);
+  --af-accent: #4B0082;
+  --af-accent-secondary: #8A2BE2;
+  --af-accent-soft: #E4D7EF;
+  --af-accent-contrast: #F3F3F4;
 
-  --af-border: rgba(26, 22, 33, 0.14);
-  --af-border-strong: rgba(26, 22, 33, 0.25);
+  --af-border: rgba(26,22,33,0.15);
+  --af-border-strong: rgba(26,22,33,0.30);
 
-  --af-focus-ring: var(--af-indigo);
+  --af-button-bg: #4B0082;
+  --af-button-text: #F3F3F4;
+  --af-button-hover-bg: #35005F;
+
+  --af-input-bg: #F5F6F8;
+  --af-input-text: #1A1621;
+  --af-focus-ring: #4B0082;
 
   color-scheme: light;
 }
 
-/* Global foundation */
+/* ========================================
+   RESET
+======================================== */
 
 *,
 *::before,
@@ -111,106 +148,48 @@
 }
 
 html {
-  min-height: 100%;
   width: 100%;
-  max-width: 100%;
-
+  min-height: 100%;
   overflow-x: hidden;
   scroll-behavior: auto;
 
-  background: var(--af-background);
+  background-color: var(--af-background);
+  color: var(--af-text-primary);
 }
 
 body {
-  min-height: 100%;
-  min-height: 100svh;
-
   display: flex;
   flex-direction: column;
 
   width: 100%;
   max-width: 100%;
+  min-height: 100svh;
 
   overflow-x: hidden;
 
+  background-color: var(--af-background);
   color: var(--af-text-primary);
-  background: var(--af-background);
 
-  font-family:
-    var(--font-af-body),
-    Montserrat,
-    sans-serif;
-
+  font-family: var(--af-font-body);
+  font-size: 16px;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.65;
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   text-rendering: optimizeLegibility;
 }
 
-/*
- * Typography ownership
- *
- * Existing V2 components still contain some
- * older, explicit Geist / Space Grotesk styles.
- *
- * These rules ensure the newly locked fonts
- * take precedence until those component files
- * are migrated to semantic design tokens.
- */
-
-:where(h1, h2, h3, h4, h5, h6) {
-  font-family:
-    var(--font-af-heading),
-    Saira,
-    sans-serif !important;
+html,
+body {
+  transition:
+    background-color var(--af-transition-theme) ease,
+    color var(--af-transition-theme) ease;
 }
 
-:where(
-  p,
-  span,
-  small,
-  li,
-  label,
-  blockquote,
-  figcaption,
-  dt,
-  dd,
-  input,
-  textarea,
-  select
-) {
-  font-family:
-    var(--font-af-body),
-    Montserrat,
-    sans-serif !important;
-}
-
-:where(
-  button,
-  button *,
-  [role="button"],
-  [role="button"] *,
-  input[type="button"],
-  input[type="submit"],
-  input[type="reset"]
-) {
-  font-family:
-    var(--font-af-button),
-    Inter,
-    sans-serif !important;
-}
-
-:where(code, pre, kbd, samp) {
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Consolas,
-    monospace;
-}
+/* ========================================
+   TYPOGRAPHY
+======================================== */
 
 h1,
 h2,
@@ -218,18 +197,41 @@ h3,
 h4,
 h5,
 h6 {
+  font-family: var(--af-font-heading);
   font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+p,
+li,
+label,
+small,
+blockquote,
+figcaption,
+nav {
+  font-family: var(--af-font-body);
 }
 
 button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  font-family: var(--af-font-button);
+}
+
 input,
 textarea,
 select {
+  font-family: var(--af-font-body);
   font-size: inherit;
 }
 
-button {
-  -webkit-tap-highlight-color: transparent;
+code,
+pre,
+kbd,
+samp {
+  font-family: ui-monospace, Consolas, monospace;
 }
 
 a {
@@ -237,22 +239,94 @@ a {
   text-decoration: none;
 }
 
-button,
-a,
-input,
-select,
-textarea {
-  touch-action: manipulation;
+/* ========================================
+   CONTAINERS
+======================================== */
+
+.af-container {
+  width: calc(100% - 2 * var(--af-page-gutter));
+  max-width: var(--af-container-max);
+  margin-inline: auto;
 }
 
-button:disabled,
-input:disabled,
-select:disabled,
-textarea:disabled {
+.af-section {
+  padding-block: var(--af-section-space);
+}
+
+/* ========================================
+   PREMIUM BUTTON FOUNDATION
+======================================== */
+
+.af-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  min-height: 48px;
+  padding: 12px 22px;
+
+  border: 1px solid transparent;
+  border-radius: var(--af-radius-sm);
+
+  background: var(--af-button-bg);
+  color: var(--af-button-text);
+
+  font-family: var(--af-font-button);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+
+  cursor: pointer;
+
+  transition:
+    background-color var(--af-transition-fast) ease,
+    color var(--af-transition-fast) ease,
+    border-color var(--af-transition-fast) ease,
+    transform var(--af-transition-fast) var(--af-ease-premium),
+    box-shadow var(--af-transition-fast) ease;
+}
+
+.af-button:hover:not(:disabled) {
+  background: var(--af-button-hover-bg);
+  transform: translateY(-2px);
+}
+
+.af-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.af-button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Accessible focus treatment */
+.af-button--outline {
+  border-color: var(--af-border-strong);
+  background: transparent;
+  color: var(--af-text-primary);
+}
+
+.af-button--outline:hover:not(:disabled) {
+  border-color: var(--af-accent);
+  background: var(--af-surface-elevated);
+  color: var(--af-accent);
+}
+
+.af-button--ghost {
+  background: transparent;
+  color: var(--af-text-primary);
+}
+
+.af-button--ghost:hover:not(:disabled) {
+  background: var(--af-surface-elevated);
+  color: var(--af-accent);
+}
+
+/* ========================================
+   FOCUS + FORMS
+======================================== */
 
 :where(
   a,
@@ -267,25 +341,23 @@ textarea:disabled {
   outline-offset: 4px;
 }
 
-/* Selection */
-
-::selection {
-  background: var(--af-golden-sand);
-  color: var(--af-deep-charcoal);
+:where(input, textarea, select) {
+  color: var(--af-input-text);
 }
 
-/*
- * Media safety
- *
- * Preserve the existing 3D Canvas and
- * GSAP motion architecture. Reduced motion
- * is handled by the relevant controllers.
- */
+::selection {
+  background: var(--af-accent);
+  color: var(--af-accent-contrast);
+}
+
+/* ========================================
+   MEDIA
+======================================== */
 
 img,
 video,
-canvas,
-svg {
+svg,
+canvas {
   max-width: 100%;
 }
 
@@ -298,8 +370,51 @@ canvas {
   touch-action: auto;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --af-page-gutter: 20px;
+    --af-section-space: clamp(64px, 12vw, 92px);
+  }
+
+  .af-button {
+    min-height: 46px;
   }
 }
+
+@media (max-width: 380px) {
+  :root {
+    --af-page-gutter: 18px;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --af-transition-fast: 0ms;
+    --af-transition-medium: 0ms;
+    --af-transition-theme: 0ms;
+  }
+
+  html,
+  body {
+    scroll-behavior: auto;
+    transition: none;
+  }
+
+  .af-button {
+    transition: none;
+  }
+
+  .af-button:hover:not(:disabled),
+  .af-button:active:not(:disabled) {
+    transform: none;
+  }
+}
+

@@ -140,10 +140,31 @@ function getSafeScreenRegion(
 
   const aspect = width / height;
 
-  const edgeX = clamp(
-    width * 0.045,
-    18,
-    84
+  /*
+   * af-shared-grid-alignment-v2
+   *
+   * Match the responsive gutters defined
+   * in globals.css and StorySections.module.css.
+   *
+   * Content and 3D product must respect
+   * the same centered 1390px site container.
+   */
+
+  const pageGutter =
+    width <= 380
+      ? 18
+      : width <= 768
+        ? 20
+        : clamp(width * 0.05, 20, 88);
+
+  const containerInset = Math.max(
+    pageGutter,
+    (width - 1390) / 2
+  );
+
+  const edgeX = Math.max(
+    clamp(width * 0.045, 18, 84),
+    containerInset
   );
 
   const edgeY = clamp(
@@ -590,3 +611,4 @@ export function composeResponsiveProductState(
     camera,
   };
 }
+

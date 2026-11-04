@@ -33,7 +33,7 @@ import CameraStateController from "./CameraStateController";
 import ProductStage from "./ProductStage";
 import EarbudsProductStage from "./EarbudsProductStage";
 import ScrollChoreographyController from "./ScrollChoreographyController";
-import ProductWorldEnvironment from "./ProductWorldEnvironment";
+
 
 const EARBUDS_FAMILY_ID = "earbuds";
 
@@ -374,10 +374,6 @@ export default function ExperienceScene({
 
   return (
     <>
-      <ProductWorldEnvironment
-        familyId={familyId}
-        variantId={variantId}
-      />
 
       {ActiveEnvironment && (
         <ActiveEnvironment />
@@ -406,3 +402,4 @@ export default function ExperienceScene({
     </>
   );
 }
+
