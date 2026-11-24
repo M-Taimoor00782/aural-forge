@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Product 02 — Wireless Earbuds
  *
  * Real GLB:
@@ -9,7 +9,7 @@
  */
 
 export const DEFAULT_EARBUDS_VARIANT_ID =
-  "electric-blue";
+  "clean-blue";
 
 export const EARBUDS_MATERIAL_TARGETS = {
   body: {
@@ -33,94 +33,22 @@ export const EARBUDS_MATERIAL_TARGETS = {
 
 export const EARBUDS_VARIANTS = [
   {
-    id: "electric-blue",
-    name: "Electric Blue",
-    description:
-      "A vivid blue finish with a bold, immersive product world.",
-    swatch: "#557FFF",
-
-    price: 189,
-    currency: "USD",
-    ctaLabel: "Add to Bag",
-
-    materialColors: {
-      body: "#557FFF",
-      accent: "#BED7FF",
-      secondary: "#91AACF",
-    },
-
-    world: {
-      palette: {
-        background: "#2554BD",
-        surface: "#1B429A",
-        text: "#FFFFFF",
-        secondaryText: "#D5E2FF",
-        accent: "#C1D6FF",
-      },
-    },
+    id: "clean-blue", name: "Clean Blue", finish: "blue", swatch: "#3363B7",
+    description: "Cool blue shells with a pale indicator.", price: 189, currency: "USD",
+    materialColors: { body: "#3363B7", secondary: "#B5C1D2", accent: "#BFD6F5" },
   },
-
   {
-    id: "solar-coral",
-    name: "Solar Coral",
-    description:
-      "A warm coral finish with an expressive, luminous atmosphere.",
-    swatch: "#F3A08F",
-
-    price: 189,
-    currency: "USD",
-    ctaLabel: "Add to Bag",
-
-    materialColors: {
-      body: "#F3A08F",
-      accent: "#FFE1CE",
-      secondary: "#E8C3BA",
-    },
-
-    world: {
-      palette: {
-        background: "#E77861",
-        surface: "#F19A86",
-        text: "#231818",
-        secondaryText: "#50312D",
-        accent: "#49211E",
-      },
-    },
+    id: "black", name: "Black", finish: "black", swatch: "#25272D",
+    description: "Graphite shells with a dark interior.", price: 189, currency: "USD",
+    materialColors: { body: "#27292F", secondary: "#595D65", accent: "#CBD0D5" },
   },
-
   {
-    id: "soft-lime",
-    name: "Soft Lime",
-    description:
-      "A fresh, understated finish with a distinctive light-toned world.",
-    swatch: "#E3EBC2",
-
-    price: 189,
-    currency: "USD",
-    ctaLabel: "Add to Bag",
-
-    materialColors: {
-      body: "#E3EBC2",
-      accent: "#F5FFD0",
-      secondary: "#C5D29F",
-    },
-
-    world: {
-      palette: {
-        background: "#C5D975",
-        surface: "#D9E6A2",
-        text: "#202617",
-        secondaryText: "#424B2A",
-        accent: "#304725",
-      },
-    },
+    id: "white", name: "White", finish: "white", swatch: "#EDEEE9",
+    description: "Soft white shells with contrasting dark tips.", price: 189, currency: "USD",
+    materialColors: { body: "#EFEFEA", secondary: "#CBCDCB", accent: "#F6F6F1" },
   },
 ];
 
 export function getEarbudsVariant(variantId) {
-  return (
-    EARBUDS_VARIANTS.find(
-      (variant) => variant.id === variantId
-    ) ?? EARBUDS_VARIANTS[0]
-  );
+  return EARBUDS_VARIANTS.find(variant => variant.id === variantId) ?? EARBUDS_VARIANTS[0];
 }

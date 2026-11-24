@@ -1,6 +1,6 @@
 ﻿import gsap from "gsap";
 import { Euler, Quaternion, Vector3 } from "three";
-import { resolveChoreographySegment } from "@/config/scrollChoreography";
+
 
 const TRAVEL_PATHS = {
   "hero-to-performance": {
@@ -251,11 +251,7 @@ function fitIntermediatePose({
 
   // Use the actual interpolated orientation,
   // including the Hero shortest-path correction.
-  const rotatedCorners = corners.map((corner) =>
-    new Vector3(...corner).applyQuaternion(
-      orientation
-    )
-  );
+  for (const corner of corners) corner.rotated.copy(corner.local).applyQuaternion(orientation);
 
   function getAllowedPosition(candidateScale) {
     let xMin = -Infinity;
@@ -263,7 +259,7 @@ function fitIntermediatePose({
     let yMin = -Infinity;
     let yMax = Infinity;
 
-    for (const corner of rotatedCorners) {
+    for (const { rotated: corner } of corners) {
       const worldZ =
         position[2] + corner.z * candidateScale;
 
@@ -378,11 +374,9 @@ export function createScrollChoreographyTimeline({
   invalidate,
   viewport,
   modelBounds,
+  from,
+  to,
 }) {
-  const { from, to } = resolveChoreographySegment(
-    segment,
-    { viewport, modelBounds }
-  );
 
   const timing = {
     ...DEFAULT_TIMING,
@@ -412,7 +406,7 @@ export function createScrollChoreographyTimeline({
     );
 
   const corners = modelBounds
-    ? getBoundsCorners(modelBounds)
+    ? getBoundsCorners(modelBounds).map(xyz => ({ local: new Vector3(...xyz), rotated: new Vector3() }))
     : null;
 
   // Preserve the approved Hero transition.
@@ -431,6 +425,7 @@ export function createScrollChoreographyTimeline({
     );
 
   const orientation = new Quaternion();
+  const euler = new Euler();
 
   const playhead = { progress: 0 };
 
@@ -496,7 +491,7 @@ export function createScrollChoreographyTimeline({
       // Preserve original Euler-based rotations
       // in the remaining scroll transitions.
       orientation.setFromEuler(
-        new Euler(...rotation)
+        euler.set(...rotation)
       );
     }
 
@@ -582,14 +577,14 @@ export function createScrollChoreographyTimeline({
     invalidate();
   }
 
-  return gsap
-    .timeline({
-      paused: true,
-      onUpdate: applyPose,
-    })
-    .to(playhead, {
-      progress: 1,
-      duration: 1,
-      ease: "none",
-    });
+  const timeline = gsap.timeline({ paused: true }).to(playhead, {
+    progress: 1, duration: 1, ease: "none",
+  });
+  return {
+    sample(progress) {
+      timeline.progress(progress, true);
+      applyPose();
+    },
+    kill() { timeline.kill(); },
+  };
 }

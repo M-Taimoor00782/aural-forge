@@ -48,7 +48,7 @@ export const SCROLL_CHOREOGRAPHY = [
     toState: "configurator",
     timing: {
       // Hold the reveal composition longer before travel.
-      // The existing part animation remains independent.
+      // Finish local reassembly before travelling to the configurator.
       position: { start: 0.70, duration: 0.30 },
       rotation: { start: 0.73, duration: 0.27 },
       scale: { start: 0.75, duration: 0.25 },

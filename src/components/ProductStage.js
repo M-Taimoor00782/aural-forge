@@ -1,157 +1,49 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
-
-import HeadphoneModel from "./HeadphoneModel";
 import ProductInspectionController from "./ProductInspectionController";
-
-import { resolveProductState } from "@/config/productStates";
-import { animateProductReveal } from "@/lib/animateProductReveal";
-import { animateProductState } from "@/lib/animateProductState";
-
-function captureLocalTransform(object) {
-  return {
-    position: object.position.clone(),
-    quaternion: object.quaternion.clone(),
-    scale: object.scale.clone(),
-  };
-}
+import ScrollChoreographyController from "./ScrollChoreographyController";
 
 export default function ProductStage({
-  productRootRef,
-  modelBounds,
-  activeProductState,
-  acousticRevealActive = false,
-  choreographyActive = false,
+  family, rig, productRootRef, choreographyActive, familyTransitionActive,
+  onChoreographyActiveChange, onStageReady, onStageUnavailable, onStageMotionRegistration,
 }) {
-  const earPadRef = useRef(null);
-  const coverRef = useRef(null);
-
-  const assembledPartsRef = useRef(null);
-  const revealActiveRef = useRef(false);
-  const revealTimelineRef = useRef(null);
-
-  const invalidate = useThree(
-    (state) => state.invalidate
-  );
-
-  const viewport = useThree(
-    (state) => state.size
-  );
-
-  const { product } = useMemo(
-    () =>
-      resolveProductState(activeProductState, {
-        viewport,
-        modelBounds,
-      }),
-    [activeProductState, viewport, modelBounds]
-  );
-
-  // Keep GSAP's ownership of the cinematic
-  // product root completely unchanged.
+  const narrativeRoot = useRef(null);
+  const invalidate = useThree(state => state.invalidate);
   useEffect(() => {
-    const productRoot = productRootRef.current;
-
-    if (!productRoot || choreographyActive) {
-      return;
+    const outer = productRootRef.current;
+    function handoff(amount, entering) {
+      const earbuds = family.id === "earbuds";
+      outer.position.set(
+        (entering ? -.24 : .28) * amount,
+        (entering ? .32 : -.42) * amount,
+        -.56 * amount
+      );
+      outer.rotation.x = earbuds ? 0 : (entering ? -.16 : .14) * amount;
+      outer.scale.setScalar(1 - (earbuds ? .12 : .18) * amount);
+      invalidate();
     }
-
-    const timeline = animateProductState({
-      productRoot,
-      productTarget: product,
-      invalidate,
+    onStageMotionRegistration(family.id, {
+      exit: p => handoff(p, false), enter: p => handoff(1 - p, true),
     });
-
+    onStageReady(family.id);
     return () => {
-      timeline.kill();
+      onStageMotionRegistration(family.id, null);
+      onStageUnavailable(family.id);
     };
-  }, [
-    product,
-    choreographyActive,
-    invalidate,
-    productRootRef,
-  ]);
-
-  // Preserve the existing acoustic reveal.
-  //
-  // Ear-pad and cover refs still point directly
-  // to the original model parts. The inspection
-  // pivot does not replace those references.
-  useEffect(() => {
-    const earPad = earPadRef.current;
-    const cover = coverRef.current;
-
-    if (!earPad || !cover) {
-      return;
-    }
-
-    if (
-      acousticRevealActive === revealActiveRef.current
-    ) {
-      return;
-    }
-
-    if (!assembledPartsRef.current) {
-      assembledPartsRef.current = {
-        earPad: captureLocalTransform(earPad),
-        cover: captureLocalTransform(cover),
-      };
-    }
-
-    revealTimelineRef.current?.kill();
-
-    const timeline = animateProductReveal({
-      earPad,
-      cover,
-      assembled: assembledPartsRef.current,
-      reveal: acousticRevealActive,
-      invalidate,
-      onComplete: () => {
-        if (
-          revealTimelineRef.current === timeline
-        ) {
-          revealTimelineRef.current = null;
-        }
-      },
-    });
-
-    revealTimelineRef.current = timeline;
-    revealActiveRef.current = acousticRevealActive;
-  }, [acousticRevealActive, invalidate]);
-
-  useEffect(() => {
-    return () => {
-      revealTimelineRef.current?.kill();
-    };
-  }, []);
-
-  // Inspection is a separate nested transform.
-  //
-  // During active cinematic choreography or
-  // acoustic disassembly, the inspection system
-  // returns to neutral and gives priority to
-  // the authored product animation.
-  const inspectionEnabled =
-    !choreographyActive &&
-    !acousticRevealActive;
+  }, [family.id, productRootRef, invalidate, onStageMotionRegistration, onStageReady, onStageUnavailable]);
 
   return (
-    <group
-      ref={productRootRef}
-      name="AuralForgeCinematicProductRoot"
-    >
-      <ProductInspectionController
-        enabled={inspectionEnabled}
-        maxYaw={0.34}
-        maxPitch={0.19}
-      >
-        <HeadphoneModel
-          earPadRef={earPadRef}
-          coverRef={coverRef}
-        />
-      </ProductInspectionController>
+    <group ref={productRootRef} name="FamilyHandoff">
+      <group ref={narrativeRoot} name="NarrativePose">
+        <ProductInspectionController enabled={!choreographyActive && !familyTransitionActive}
+          maxYaw={family.id === "earbuds" ? .28 : .34} maxPitch={.16}>
+          <primitive object={rig.scene} dispose={null} />
+        </ProductInspectionController>
+      </group>
+      <ScrollChoreographyController productRootRef={narrativeRoot} rig={rig}
+        onChoreographyActiveChange={onChoreographyActiveChange} />
     </group>
   );
 }

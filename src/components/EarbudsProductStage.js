@@ -5,13 +5,12 @@ import { useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Box3, Color, Vector3 } from "three";
 import gsap from "gsap";
+import { EARBUDS_MATERIAL_TARGETS } from "@/config/earbudsVariants";
 
-import ProductInspectionController from "./ProductInspectionController";
+import ProductStage from "./ProductStage";
+import { earbudsMechanism, measureMechanism } from "@/lib/animateProductReveal";
 
-import {
-  getProductFamilyVariant,
-  getProductFamilyWorld,
-} from "@/config/productFamilies";
+import { getProductFamilyVariant } from "@/config/productFamilies";
 
 const MODEL_URL =
   "/models/earbuds/aural-forge-earbuds.glb";
@@ -45,50 +44,6 @@ const CAMERA = {
 
 // Each loaded GLB is inspected only once.
 const inspectedGLBScenes = new WeakSet();
-
-function clamp01(value) {
-  return Math.max(0, Math.min(1, value));
-}
-
-function captureTransform(root) {
-  return {
-    position: root.position.clone(),
-    quaternion: root.quaternion.clone(),
-    scale: root.scale.clone(),
-  };
-}
-
-function applyFamilyHandoff({
-  root,
-  baseline,
-  progress,
-  entering,
-  invalidate,
-}) {
-  const amount = entering
-    ? 1 - clamp01(progress)
-    : clamp01(progress);
-
-  const offset = entering
-    ? new Vector3(-0.18, 0.24, -0.38)
-    : new Vector3(0.22, -0.28, -0.48);
-
-  root.position
-    .copy(baseline.position)
-    .addScaledVector(offset, amount);
-
-  root.quaternion.copy(
-    baseline.quaternion
-  );
-
-  root.scale
-    .copy(baseline.scale)
-    .multiplyScalar(
-      1 - amount * 0.12
-    );
-
-  invalidate();
-}
 
 // Resolve actual runtime objects using
 // GLTFLoader's source-node associations.
@@ -196,9 +151,7 @@ function resolveRuntimeNodes(gltf, clone) {
       )
     ) {
       console.warn(
-        "Some mechanical parts are not mapped. " +
-        "The complete model will still render. " +
-        "Mechanical animation remains deferred."
+        "Earbud GLB node mapping is incomplete."
       );
     }
 
@@ -278,58 +231,18 @@ function createEarbudsRig(gltf) {
     size.set(1, 1, 1);
   }
 
+  const sample = earbudsMechanism(parts);
+  const centered = new Box3().setFromObject(scene);
   return {
-    scene,
-    parts,
-    modelSize: size,
+    scene, sample,
+    bounds: { min: centered.min.toArray(), max: centered.max.toArray() },
+    expandedBounds: measureMechanism(scene, sample),
+    camera: viewport => ({ position: [0, 0, getCameraDistance(size, viewport)], fov: CAMERA.fov }),
     materialsByName,
     ownedMaterials: [
       ...materialClones.values(),
     ],
   };
-}
-
-function resolveVariantColor(
-  family,
-  variantId
-) {
-  const variant = getProductFamilyVariant(
-    family.id,
-    variantId
-  );
-
-  const signature = [
-    variant?.id,
-    variant?.name,
-    variant?.label,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (
-    signature.includes("coral") ||
-    signature.includes("solar")
-  ) {
-    return new Color("#E77861");
-  }
-
-  if (signature.includes("lime")) {
-    return new Color("#C5D975");
-  }
-
-  if (signature.includes("blue")) {
-    return new Color("#2554BD");
-  }
-
-  const accent = getProductFamilyWorld(
-    family.id,
-    variantId
-  ).palette.accent;
-
-  return new Color(
-    accent ?? "#2554BD"
-  );
 }
 
 function applyVariantMaterials({
@@ -338,42 +251,12 @@ function applyVariantMaterials({
   variantId,
   invalidate,
 }) {
-  const accent = resolveVariantColor(
-    family,
-    variantId
-  );
-
-  const secondary = new Color(
-    "#C3C9D4"
-  ).lerp(accent, 0.16);
-
-  const luminous = accent
-    .clone()
-    .lerp(
-      new Color("#F4F7FF"),
-      0.18
-    );
-
-  const targets = [
-    {
-      material:
-        rig.materialsByName.get("black r"),
-      property: "color",
-      color: accent,
-    },
-    {
-      material:
-        rig.materialsByName.get("grey r"),
-      property: "color",
-      color: secondary,
-    },
-    {
-      material:
-        rig.materialsByName.get("emision"),
-      property: "emissive",
-      color: luminous,
-    },
-  ];
+  const variant = getProductFamilyVariant(family.id, variantId);
+  const targets = Object.entries(EARBUDS_MATERIAL_TARGETS).map(([key, mapping]) => ({
+    material: rig.materialsByName.get(mapping.materialName),
+    property: mapping.colorProperty,
+    color: new Color(variant.materialColors[key]),
+  }));
 
   const reducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
@@ -463,38 +346,12 @@ function getCameraDistance(
   );
 }
 
-export default function EarbudsProductStage({
-  family,
-  variantId,
-  productRootRef,
-  choreographyActive = false,
-  familyTransitionActive = false,
-  onStageReady,
-  onStageUnavailable,
-  onStageMotionRegistration,
-}) {
+export default function EarbudsProductStage(props) {
+  const { family, variantId } = props;
   const gltf = useGLTF(MODEL_URL);
-
-  const camera = useThree(
-    (state) => state.camera
-  );
-
-  const viewport = useThree(
-    (state) => state.size
-  );
-
-  const invalidate = useThree(
-    (state) => state.invalidate
-  );
-
-  const rig = useMemo(
-    () => createEarbudsRig(gltf),
-    [gltf]
-  );
-
+  const invalidate = useThree(state => state.invalidate);
+  const rig = useMemo(() => createEarbudsRig(gltf), [gltf]);
   const materialTimelineRef = useRef(null);
-  const exitPoseRef = useRef(null);
-  const enterPoseRef = useRef(null);
 
   // Keep the existing variant system working
   // on the actual cloned GLB materials.
@@ -526,160 +383,6 @@ export default function EarbudsProductStage({
     invalidate,
   ]);
 
-  // Camera framing starts only after the
-  // active family handoff releases ownership.
-  useEffect(() => {
-    if (
-      familyTransitionActive ||
-      !camera.isPerspectiveCamera
-    ) {
-      return;
-    }
-
-    const distance = getCameraDistance(
-      rig.modelSize,
-      viewport
-    );
-
-    function updateCamera() {
-      camera.lookAt(0, 0, 0);
-      camera.updateProjectionMatrix();
-      invalidate();
-    }
-
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    if (reducedMotion) {
-      camera.position.set(
-        0,
-        0,
-        distance
-      );
-
-      camera.fov = CAMERA.fov;
-
-      updateCamera();
-      return;
-    }
-
-    const timeline = gsap.timeline({
-      onUpdate: updateCamera,
-      onComplete: updateCamera,
-    });
-
-    timeline.to(
-      camera.position,
-      {
-        x: 0,
-        y: 0,
-        z: distance,
-        duration: CAMERA.duration,
-        ease: "power2.inOut",
-        overwrite: true,
-      },
-      0
-    );
-
-    timeline.to(
-      camera,
-      {
-        fov: CAMERA.fov,
-        duration: CAMERA.duration,
-        ease: "power2.inOut",
-        overwrite: true,
-      },
-      0
-    );
-
-    return () => timeline.kill();
-  }, [
-    camera,
-    viewport.width,
-    viewport.height,
-    rig,
-    familyTransitionActive,
-    invalidate,
-  ]);
-
-  // Register the mounted product with the
-  // existing family transition controller.
-  useEffect(() => {
-    const root = productRootRef.current;
-
-    if (!root || !family?.id) {
-      return;
-    }
-
-    const motionApi = {
-      exit(progress) {
-        if (
-          progress <= 0 ||
-          !exitPoseRef.current
-        ) {
-          exitPoseRef.current =
-            captureTransform(root);
-        }
-
-        applyFamilyHandoff({
-          root,
-          baseline: exitPoseRef.current,
-          progress,
-          entering: false,
-          invalidate,
-        });
-      },
-
-      enter(progress) {
-        if (
-          progress <= 0 ||
-          !enterPoseRef.current
-        ) {
-          enterPoseRef.current =
-            captureTransform(root);
-        }
-
-        applyFamilyHandoff({
-          root,
-          baseline: enterPoseRef.current,
-          progress,
-          entering: true,
-          invalidate,
-        });
-      },
-    };
-
-    onStageMotionRegistration?.(
-      family.id,
-      motionApi
-    );
-
-    onStageReady?.(family.id);
-    invalidate();
-
-    return () => {
-      onStageMotionRegistration?.(
-        family.id,
-        null
-      );
-
-      onStageUnavailable?.(
-        family.id
-      );
-
-      exitPoseRef.current = null;
-      enterPoseRef.current = null;
-    };
-  }, [
-    family?.id,
-    productRootRef,
-    invalidate,
-    onStageReady,
-    onStageUnavailable,
-    onStageMotionRegistration,
-  ]);
-
   // Only dispose material clones owned by
   // this stage. The GLB cache stays reusable.
   useEffect(() => {
@@ -694,29 +397,7 @@ export default function EarbudsProductStage({
     };
   }, [rig]);
 
-  return (
-    <group
-      ref={productRootRef}
-      name="AuralForgeEarbudsCinematicRoot"
-    >
-      <ProductInspectionController
-        enabled={
-          !choreographyActive &&
-          !familyTransitionActive
-        }
-        maxYaw={0.28}
-        maxPitch={0.16}
-      >
-        {/* Entire verified GLB renders intact.
-            No mechanical parts are reparented
-            or animated in this mounting pass. */}
-        <primitive
-          object={rig.scene}
-          dispose={null}
-        />
-      </ProductInspectionController>
-    </group>
-  );
+  return <ProductStage {...props} rig={rig} />;
 }
 
 useGLTF.preload(MODEL_URL);

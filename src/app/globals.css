@@ -1,4 +1,4 @@
-﻿/*
+/*
  * AURAL FORGE — GLOBAL DESIGN SYSTEM
  * af-clean-global-foundation-v1
  *
@@ -14,8 +14,7 @@
    BASE + DARK THEME
 ======================================== */
 
-:root,
-:root[data-af-theme="dark"] {
+:root {
   --af-bright-white: #F3F3F4;
   --af-golden-sand: #F6B54E;
   --af-terracotta: #C3783A;
@@ -47,6 +46,7 @@
   /* Shared layout */
   --af-container-max: 1390px;
   --af-page-gutter: clamp(20px, 5vw, 88px);
+  --af-container-inset: max(var(--af-page-gutter), calc((100% - var(--af-container-max)) / 2));
   --af-section-space: clamp(80px, 10vw, 150px);
 
   /* Radius */
@@ -65,6 +65,9 @@
   /* Palette 3 */
   --af-background: #0D0D0D;
   --af-surface: #1A1819;
+  --af-header-surface: var(--af-surface);
+  --af-header-shadow: 0 16px 45px rgb(0 0 0 / 28%), inset 0 1px 0 rgb(255 255 255 / 4.5%);
+  --af-backdrop: rgb(0 0 0 / 58%);
   --af-surface-elevated: #262324;
 
   --af-text-primary: #F3F3F4;
@@ -106,7 +109,10 @@
 
 :root[data-af-theme="light"] {
   --af-background: #FFFFFF;
-  --af-surface: #F5F6F8;
+  --af-surface: var(--af-pale-grey);
+  --af-header-surface: #F8F9FB;
+  --af-header-shadow: 0 16px 45px rgb(26 22 33 / 14%), inset 0 1px 0 rgb(255 255 255 / 80%);
+  --af-backdrop: rgb(26 22 33 / 38%);
   --af-surface-elevated: #D6DCE1;
 
   --af-text-primary: #1A1621;
@@ -150,7 +156,8 @@
 html {
   width: 100%;
   min-height: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
+  scrollbar-gutter: stable;
   scroll-behavior: auto;
 
   background-color: var(--af-background);
@@ -165,7 +172,7 @@ body {
   max-width: 100%;
   min-height: 100svh;
 
-  overflow-x: hidden;
+  overflow-x: clip;
 
   background-color: var(--af-background);
   color: var(--af-text-primary);
@@ -244,9 +251,7 @@ a {
 ======================================== */
 
 .af-container {
-  width: calc(100% - 2 * var(--af-page-gutter));
-  max-width: var(--af-container-max);
-  margin-inline: auto;
+  margin-inline: var(--af-container-inset);
 }
 
 .af-section {
@@ -415,6 +420,52 @@ canvas {
   .af-button:hover:not(:disabled),
   .af-button:active:not(:disabled) {
     transform: none;
+  }
+}
+
+
+.af-cinematic-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 1;
+  transition:
+    opacity 720ms cubic-bezier(.22,1,.36,1);
+}
+
+.af-cinematic-layer.is-exiting {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 720ms cubic-bezier(.22,1,.36,1),
+    visibility 0s linear 720ms;
+}
+
+/*
+ * Banner-only 3D visibility.
+ *
+ * Different from the permanent exit
+ * used by the Products section.
+ */
+.af-cinematic-layer.is-banner-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 620ms cubic-bezier(.22,1,.36,1),
+    visibility 0s linear 620ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-cinematic-layer.is-banner-hidden {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-cinematic-layer,
+  .af-cinematic-layer.is-exiting {
+    transition: none;
   }
 }
 

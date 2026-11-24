@@ -1,4 +1,4 @@
-﻿export const PRODUCT_MATERIAL_TARGETS = {
+export const PRODUCT_MATERIAL_TARGETS = {
   body: {
     materialName: "Anodized Metal_WebPBR",
     sourceMeshNames: [
@@ -19,9 +19,9 @@
 export const PRODUCT_VARIANTS = [
   {
     id: "studio-original",
-    name: "Studio Original",
-    description: "The original factory material finish.",
-    swatch: "#42464D",
+    name: "Original Red / Black", finish: "red",
+    description: "Red anodized metal with black cushioned ear pads.",
+    swatch: "#B53928",
     price: 299,
     currency: "USD",
     ctaLabel: "Add to Bag",
@@ -31,31 +31,31 @@ export const PRODUCT_VARIANTS = [
   },
 
   {
-    id: "glacier-silver",
-    name: "Glacier Silver",
-    description: "Cool metallic surfaces with refined silver detailing.",
-    swatch: "#ACBBC8",
+    id: "white",
+    name: "White", finish: "white",
+    description: "White earcups with contrasting dark cushions.",
+    swatch: "#EDEEE9",
     price: 319,
     currency: "USD",
     ctaLabel: "Add to Bag",
 
     materialColors: {
-      body: "#9CAEBF",
-      hardware: "#D7E0E8",
+      body: "#F2F1EB",
+      hardware: "#D7D8D4",
     },
   },
 
   {
-    id: "midnight-blue",
-    name: "Midnight Blue",
-    description: "Deep blue anodized metal with muted steel accents.",
-    swatch: "#294668",
+    id: "clean-blue",
+    name: "Clean Blue", finish: "blue",
+    description: "Blue anodized metal with cool steel detailing.",
+    swatch: "#3363B7",
     price: 329,
     currency: "USD",
     ctaLabel: "Add to Bag",
 
     materialColors: {
-      body: "#294668",
+      body: "#3363B7",
       hardware: "#859CB6",
     },
   },

@@ -7,8 +7,6 @@ import { PRODUCT_STATES } from "@/config/productStates";
 export default function ExperienceCanvas({
   familyId,
   variantId,
-  activeProductState,
-  acousticRevealActive,
   choreographyActive,
   familyTransitionActive = false,
   onChoreographyActiveChange,
@@ -21,6 +19,7 @@ export default function ExperienceCanvas({
   return (
     <Canvas
       frameloop="demand"
+      resize={{ offsetSize: true, scroll: false }}
       style={{
         position: "fixed",
         inset: 0,
@@ -38,8 +37,6 @@ export default function ExperienceCanvas({
       <ExperienceScene
         familyId={familyId}
         variantId={variantId}
-        activeProductState={activeProductState}
-        acousticRevealActive={acousticRevealActive}
         choreographyActive={choreographyActive}
         familyTransitionActive={familyTransitionActive}
         onChoreographyActiveChange={

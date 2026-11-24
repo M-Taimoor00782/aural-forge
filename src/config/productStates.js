@@ -40,7 +40,7 @@ export const PRODUCT_STATES = {
 
   acousticReveal: {
     product: {
-      position: [0.65, -1.42, 0],
+      position: [-0.65, -1.42, 0],
       rotation: [0, -0.5, 0],
       scale: 1.68,
     },

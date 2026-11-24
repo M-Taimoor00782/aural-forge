@@ -63,6 +63,7 @@ export default function ProductParallaxBanner({
 
     media.add(
       {
+        desktop: "(min-width: 768px)",
         mobile: "(max-width: 767px)",
         reduced: "(prefers-reduced-motion: reduce)",
       },
@@ -284,15 +285,8 @@ export default function ProductParallaxBanner({
           display: flex;
           align-items: flex-end;
 
-          padding:
-            0
-            max(
-              var(--af-page-gutter),
-              calc(
-                (100vw - var(--af-container-max)) / 2
-              )
-            )
-            clamp(62px, 11vh, 125px);
+          padding-inline: var(--af-container-inset);
+          padding-bottom: clamp(62px, 11vh, 125px);
 
           opacity: 0;
         }
@@ -360,10 +354,7 @@ export default function ProductParallaxBanner({
           }
 
           .af-zoom-banner-content-wrap {
-            padding:
-              0
-              var(--af-page-gutter)
-              clamp(72px, 11vh, 115px);
+            padding-bottom: clamp(72px, 11vh, 115px);
           }
 
           .af-zoom-banner-heading {

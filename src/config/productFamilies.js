@@ -1,3 +1,4 @@
+import { SMARTWATCH_VARIANTS, SMARTWATCH_MATERIAL_TARGETS } from "@/config/smartwatchVariants";
 ﻿import {
   PRODUCT_VARIANTS,
   PRODUCT_MATERIAL_TARGETS,
@@ -36,6 +37,7 @@ export const PRODUCT_FAMILIES = {
   headphones: {
     id: "headphones",
     label: "Over-ear Headphones",
+    description: "Soft cushions meet sculpted earcups in a pair of headphones made for a closer listen.",
     number: "01",
     status: "ready",
 
@@ -76,6 +78,7 @@ export const PRODUCT_FAMILIES = {
   earbuds: {
     id: "earbuds",
     label: "Wireless Earbuds",
+    description: "Two wireless earbuds, nestled in a sculpted charging case that fits in the palm of your hand.",
     number: "02",
     status: "ready",
 
@@ -115,7 +118,7 @@ export const PRODUCT_FAMILIES = {
 
     story: {
       id: "earbuds-journey",
-      supportsAcousticReveal: false,
+      supportsAcousticReveal: true,
       supportsMaterialConfigurator: true,
     },
 
@@ -124,31 +127,26 @@ export const PRODUCT_FAMILIES = {
     },
   },
 
-  /*
-   * Third product family is reserved.
-   *
-   * Do not activate Smartwatch until its
-   * real GLB, variant configuration, and
-   * product experience are implemented.
-   */
   "product-03": {
     id: "product-03",
-    label: "Product 03",
+    label: "Smartwatch",
     number: "03",
-    status: "reserved",
+    status: "ready",
+    gallerySlug: "smartwatch",
+    description: "A dark dial with raised hour markers, slender hands, and a curved strap.",
 
     asset: {
-      url: null,
+      url: "/models/smartwatch/aural-forge-smartwatch.glb",
       preload: "on-demand",
     },
 
-    variants: [],
-    defaultVariantId: null,
-    materialTargets: {},
+    variants: SMARTWATCH_VARIANTS,
+    defaultVariantId: "black",
+    materialTargets: SMARTWATCH_MATERIAL_TARGETS,
 
     world: {
       id: "product-03-world",
-      environmentId: null,
+      environmentId: "watch-studio",
       backgroundSource: "fixed",
 
       palette: {
@@ -161,9 +159,9 @@ export const PRODUCT_FAMILIES = {
     },
 
     story: {
-      id: null,
+      id: "watch-journey",
       supportsAcousticReveal: false,
-      supportsMaterialConfigurator: false,
+      supportsMaterialConfigurator: true,
     },
 
     transition: {
@@ -263,3 +261,18 @@ export function isProductFamilyReady(
   );
 }
 
+
+export function formatPrice(variant) {
+  if (
+    typeof variant?.price !== "number" ||
+    !Number.isFinite(variant.price)
+  ) {
+    return null;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: variant.currency || "USD",
+    maximumFractionDigits: 0,
+  }).format(variant.price);
+}

@@ -612,3 +612,25 @@ export function composeResponsiveProductState(
   };
 }
 
+
+// Solve once per layout refresh against the measured CSS slot. Bounds include
+// the open mechanism; scaling never breathes as the parts travel.
+export function fitStagePose(bounds, rotation, camera, viewport, region, occupancy = .88) {
+  const euler = new Euler(...rotation);
+  const corners = getBoxCorners(bounds).map(p => new Vector3(...p).applyEuler(euler));
+  const fit = scale => getAllowedRootPosition({
+    scale, corners, camera, aspect: viewport.width / viewport.height,
+    viewport, region, productZ: 0,
+  });
+  let low = 0, high = 12;
+  for (let i = 0; i < 26; i++) {
+    const mid = (low + high) / 2;
+    if (fit(mid)) low = mid;
+    else high = mid;
+  }
+  const scale = low * occupancy;
+  const limits = fit(scale);
+  return { camera, product: { scale, rotation, position: [
+    (limits.xMin + limits.xMax) / 2, (limits.yMin + limits.yMax) / 2, 0,
+  ] } };
+}

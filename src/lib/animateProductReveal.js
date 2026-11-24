@@ -1,172 +1,79 @@
-﻿import gsap from "gsap";
-import { Euler, Quaternion, Vector3 } from "three";
+import { Box3, Euler, Quaternion, Vector3 } from "three";
 import { PRODUCT_REVEAL } from "@/config/productReveal";
 
-function getTargetTransform(
-  assembled,
-  configuration,
-  reveal
-) {
-  if (!reveal) {
-    return {
-      position: assembled.position.clone(),
-      quaternion: assembled.quaternion.clone(),
-    };
-  }
+export function phase(value, start, end) {
+  const t = Math.min(1, Math.max(0, (value - start) / (end - start)));
+  return t * t * (3 - 2 * t);
+}
 
-  // Convert the local separation offset into the
-  // part's parent coordinate system.
-  const offset = new Vector3(
-    configuration.localX,
-    configuration.localY,
-    configuration.localZ
-  ).applyQuaternion(assembled.quaternion);
+// Sample absolute local transforms. Returning to the same scroll offset
+// restores exactly the same geometry, even after jumping across a section.
+export function headphoneMechanism(scene) {
+  const parts = [["Ear_Pad", PRODUCT_REVEAL.earPad], ["Cover", PRODUCT_REVEAL.cover]]
+    .map(([name, config]) => {
+      const mesh = scene.getObjectByName(name);
+      const position = mesh.position.clone();
+      const rotation = mesh.quaternion.clone();
+      const offset = new Vector3(config.localX, config.localY, config.localZ)
+        .applyQuaternion(rotation);
+      const { x, y, z } = config.tilt;
+      return { mesh, position, rotation, offset, target: rotation.clone()
+        .multiply(new Quaternion().setFromEuler(new Euler(x, y, z))) };
+    });
 
-  // Apply a restrained local-space tilt relative
-  // to the original assembled orientation.
-  const localTilt = new Quaternion().setFromEuler(
-    new Euler(
-      configuration.tilt.x,
-      configuration.tilt.y,
-      configuration.tilt.z
-    )
-  );
-
-  return {
-    position: assembled.position.clone().add(offset),
-    quaternion: assembled.quaternion
-      .clone()
-      .multiply(localTilt),
+  return (progress) => {
+    parts.forEach(({ mesh, position, rotation, offset, target }, i) => {
+      const t = phase(progress, i * .16, .84 + i * .16);
+      mesh.position.copy(position).addScaledVector(offset, t);
+      mesh.quaternion.slerpQuaternions(rotation, target, t);
+    });
   };
 }
 
-function createPartMotion({
-  part,
-  target,
-  invalidate,
-}) {
-  // Capture the actual current transform.
-  // This allows clean reversal during an
-  // unfinished reveal or restore.
-  const startPosition = part.position.clone();
-  const startQuaternion = part.quaternion.clone();
+export function earbudsMechanism({ hinge, firstEarbud, secondEarbud }) {
+  const openHinge = hinge.quaternion.clone();
+  const closedHinge = new Quaternion();
+  const buds = [firstEarbud, secondEarbud].map((mesh, i) => {
+    const side = i ? 1 : -1;
+    const dock = firstEarbud.position.clone();
+    dock.x = side * Math.abs(dock.x);
+    // The export poses the right bud above its socket. Mirror the seated
+    // left bud in case-local space. Its tip remains a child throughout.
+    const seated = i ? new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
+      : mesh.quaternion.clone();
+    const turned = seated.clone().multiply(new Quaternion().setFromEuler(
+      new Euler(-.11, side * .31, side * -.12)
+    ));
+    return { mesh, side, dock, seated, turned, original: mesh.position.clone(),
+      originalRotation: mesh.quaternion.clone() };
+  });
 
-  const progress = { value: 0 };
-
-  function update() {
-    part.position.lerpVectors(
-      startPosition,
-      target.position,
-      progress.value
-    );
-
-    part.quaternion.slerpQuaternions(
-      startQuaternion,
-      target.quaternion,
-      progress.value
-    );
-
-    invalidate();
-  }
-
-  return {
-    progress,
-    update,
+  return (progress, display) => {
+    const lid = Math.max(phase(display, 0, .55), phase(progress, .02, .42));
+    hinge.quaternion.slerpQuaternions(closedHinge, openHinge, lid);
+    const displayLift = phase(display, .55, 1);
+    for (const bud of buds) {
+      const delay = bud.side > 0 ? .04 : 0;
+      const lift = phase(progress, .42 + delay, .72 + delay);
+      const spread = phase(progress, .74 + delay, .96 + delay);
+      bud.mesh.position.lerpVectors(bud.dock, bud.original, displayLift);
+      bud.mesh.position.y += .72 * lift + .14 * spread;
+      bud.mesh.position.x += bud.side * .32 * spread;
+      bud.mesh.position.z += .05 * spread;
+      bud.mesh.quaternion.slerpQuaternions(bud.seated, bud.originalRotation, displayLift);
+      bud.mesh.quaternion.slerp(bud.turned, spread);
+    }
   };
 }
 
-export function animateProductReveal({
-  earPad,
-  cover,
-  assembled,
-  reveal,
-  invalidate,
-  onComplete,
-}) {
-  const earPadTarget = getTargetTransform(
-    assembled.earPad,
-    PRODUCT_REVEAL.earPad,
-    reveal
-  );
-
-  const coverTarget = getTargetTransform(
-    assembled.cover,
-    PRODUCT_REVEAL.cover,
-    reveal
-  );
-
-  const earPadMotion = createPartMotion({
-    part: earPad,
-    target: earPadTarget,
-    invalidate,
-  });
-
-  const coverMotion = createPartMotion({
-    part: cover,
-    target: coverTarget,
-    invalidate,
-  });
-
-  const timeline = gsap.timeline({
-    defaults: {
-      duration: PRODUCT_REVEAL.motion.duration,
-      ease: PRODUCT_REVEAL.motion.ease,
-      overwrite: "auto",
-    },
-
-    onComplete: () => {
-      // Ensure exact final transforms after
-      // the completed animation.
-      earPad.position.copy(earPadTarget.position);
-      earPad.quaternion.copy(earPadTarget.quaternion);
-
-      cover.position.copy(coverTarget.position);
-      cover.quaternion.copy(coverTarget.quaternion);
-
-      invalidate();
-      onComplete?.();
-    },
-  });
-
-  const stagger = PRODUCT_REVEAL.motion.stagger;
-
-  if (reveal) {
-    timeline
-      .to(
-        earPadMotion.progress,
-        {
-          value: 1,
-          onUpdate: earPadMotion.update,
-        },
-        0
-      )
-      .to(
-        coverMotion.progress,
-        {
-          value: 1,
-          onUpdate: coverMotion.update,
-        },
-        stagger
-      );
-  } else {
-    timeline
-      .to(
-        coverMotion.progress,
-        {
-          value: 1,
-          onUpdate: coverMotion.update,
-        },
-        0
-      )
-      .to(
-        earPadMotion.progress,
-        {
-          value: 1,
-          onUpdate: earPadMotion.update,
-        },
-        stagger
-      );
+export function measureMechanism(scene, sample) {
+  const bounds = new Box3();
+  // Include all phases, including the intermediate arc of the real hinge.
+  for (let i = 0; i <= 16; i++) {
+    sample(i / 16, 0);
+    scene.updateMatrixWorld(true);
+    bounds.expandByObject(scene);
   }
-
-  return timeline;
+  sample(0, 1);
+  return { min: bounds.min.toArray(), max: bounds.max.toArray() };
 }
