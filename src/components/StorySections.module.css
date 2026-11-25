@@ -114,7 +114,7 @@
     var(--af-accent, #F6B54E);
 
   font-family:
-    var(--af-font-body, Montserrat, sans-serif);
+    var(--af-font-body, Inter, sans-serif);
 
   font-size: 11px;
   font-weight: 600;
@@ -157,7 +157,7 @@
     var(--af-text-secondary, #ADB3BA);
 
   font-family:
-    var(--af-font-body, Montserrat, sans-serif);
+    var(--af-font-body, Inter, sans-serif);
 
   font-size:
     clamp(14px, 1.07vw, 16px);
@@ -351,6 +351,27 @@
   }
 }
 
+
+.detailTrack {
+  --detail-overlap: 44svh;
+  margin-bottom: calc(-1 * var(--detail-overlap));
+}
+
+.detailTrack::after {
+  content: "";
+  display: block;
+  height: var(--detail-overlap);
+}
+
+.pinnedDetail {
+  position: sticky;
+  top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detailTrack { --detail-overlap: 0px; }
+  .pinnedDetail { position: relative; }
+}
 
 /* The empty grid cell is the measured projection area of the live Canvas. */
 .reveal { position: relative; z-index: 2; min-height: 185svh; }

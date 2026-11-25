@@ -1,6 +1,7 @@
 ﻿import { Suspense, useMemo, useRef } from "react";
 
 import { useThree } from "@react-three/fiber";
+import { Group } from "three";
 
 import {
   Environment,
@@ -30,8 +31,16 @@ function HeadphoneProductExperience(props) {
   const rig = useMemo(() => {
     const scene = source.clone(true);
     const bounds = measureHeadphoneBounds(scene);
-    const sample = headphoneMechanism(scene);
-    return { scene, bounds, sample, expandedBounds: measureMechanism(scene, sample) };
+    const presentation = new Group();
+    presentation.name = "HeadphoneInspection";
+    presentation.add(scene);
+    const sample = headphoneMechanism(scene, presentation);
+    return {
+      scene: presentation, bounds, sample,
+      revealRotation: [.035, -.65, -.04],
+      expandedBounds: measureMechanism(presentation, sample),
+      compactRevealBounds: measureMechanism(presentation, (progress, display) => sample(progress, display, true)),
+    };
   }, [source]);
   useProductVariantMaterials({ scene: rig.scene, productRootRef: props.productRootRef,
     variantId: props.variantId, invalidate });
@@ -122,9 +131,9 @@ const PRODUCT_ENVIRONMENT_COMPONENTS = {
 export default function ExperienceScene({
   familyId = DEFAULT_PRODUCT_FAMILY_ID,
   variantId,
-  choreographyActive,
-  familyTransitionActive = false,
-  onChoreographyActiveChange,
+  inspectionSection,
+  inspectionRef,
+  onInspectionSectionChange,
   onStageReady,
   onStageUnavailable,
   onStageMotionRegistration,
@@ -159,11 +168,9 @@ export default function ExperienceScene({
           family={family}
           variantId={variantId}
           productRootRef={productRootRef}
-          choreographyActive={choreographyActive}
-          familyTransitionActive={familyTransitionActive}
-          onChoreographyActiveChange={
-            onChoreographyActiveChange
-          }
+          inspectionSection={inspectionSection}
+          inspectionRef={inspectionRef}
+          onInspectionSectionChange={onInspectionSectionChange}
           onStageReady={onStageReady}
           onStageUnavailable={onStageUnavailable}
           onStageMotionRegistration={

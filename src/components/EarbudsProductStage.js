@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { Box3, Color, Vector3 } from "three";
+import { Box3, Color, Group, Vector3 } from "three";
 import gsap from "gsap";
 import { EARBUDS_MATERIAL_TARGETS } from "@/config/earbudsVariants";
 
@@ -191,6 +191,8 @@ function createEarbudsRig(gltf) {
         materialClones.get(material);
 
       if (owned.name) {
+        const target = Object.values(EARBUDS_MATERIAL_TARGETS).find(config => config.materialName === owned.name);
+        Object.assign(owned, target?.surface);
         materialsByName.set(
           owned.name,
           owned
@@ -231,12 +233,15 @@ function createEarbudsRig(gltf) {
     size.set(1, 1, 1);
   }
 
-  const sample = earbudsMechanism(parts);
+  const presentation = new Group();
+  presentation.add(scene);
+  const sample = earbudsMechanism(parts, presentation);
   const centered = new Box3().setFromObject(scene);
   return {
-    scene, sample,
+    scene: presentation, sample,
     bounds: { min: centered.min.toArray(), max: centered.max.toArray() },
-    expandedBounds: measureMechanism(scene, sample),
+    expandedBounds: measureMechanism(presentation, sample),
+    revealRotation: [-.09, -.15, -.025],
     camera: viewport => ({ position: [0, 0, getCameraDistance(size, viewport)], fov: CAMERA.fov }),
     materialsByName,
     ownedMaterials: [

@@ -6,8 +6,8 @@ import ProductInspectionController from "./ProductInspectionController";
 import ScrollChoreographyController from "./ScrollChoreographyController";
 
 export default function ProductStage({
-  family, rig, productRootRef, choreographyActive, familyTransitionActive,
-  onChoreographyActiveChange, onStageReady, onStageUnavailable, onStageMotionRegistration,
+  family, rig, productRootRef, inspectionSection, inspectionRef,
+  onInspectionSectionChange, onStageReady, onStageUnavailable, onStageMotionRegistration,
 }) {
   const narrativeRoot = useRef(null);
   const invalidate = useThree(state => state.invalidate);
@@ -37,13 +37,12 @@ export default function ProductStage({
   return (
     <group ref={productRootRef} name="FamilyHandoff">
       <group ref={narrativeRoot} name="NarrativePose">
-        <ProductInspectionController enabled={!choreographyActive && !familyTransitionActive}
-          maxYaw={family.id === "earbuds" ? .28 : .34} maxPitch={.16}>
+        <ProductInspectionController section={inspectionSection} inspectionRef={inspectionRef}>
           <primitive object={rig.scene} dispose={null} />
         </ProductInspectionController>
       </group>
       <ScrollChoreographyController productRootRef={narrativeRoot} rig={rig}
-        onChoreographyActiveChange={onChoreographyActiveChange} />
+        inspectionRef={inspectionRef} onInspectionSectionChange={onInspectionSectionChange} />
     </group>
   );
 }

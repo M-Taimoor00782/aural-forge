@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { getProductFamily, getProductFamilyVariant, formatPrice } from "@/config/productFamilies";
+import { getProductFamily, getProductFamilyVariant, getProductFinishImage, formatPrice } from "@/config/productFamilies";
 import styles from "./ProductsGallery.module.css";
 
 function photo(familyId, variant) {
-  const slug = getProductFamily(familyId).gallerySlug ?? familyId;
-  return `/images/finishes/${slug}-${variant.id}.webp`;
+  return getProductFinishImage(familyId, variant.id);
 }
 
 function PurchaseControls({ family, variant, onAdd, onVariantChange, disabled }) {
@@ -29,7 +28,7 @@ function PurchaseControls({ family, variant, onAdd, onVariantChange, disabled })
       </div>
       <p className={styles.finishNote}>{variant.description}</p>
       <div className={styles.order}>
-        <div><span className={styles.label}>{variant.demoPrice ? "Demo unit price" : "Unit price"}</span><strong className={styles.price}>{formatPrice(variant)} <small>{variant.currency}</small></strong></div>
+        <div><span className={styles.label}>Unit price</span><strong className={styles.price}>{formatPrice(variant)} <small>{variant.currency}</small></strong></div>
         <div><span className={styles.label}>Quantity</span>
           <div className={styles.stepper} role="group" aria-label="Quantity">
             <button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity(n => Math.max(1, n - 1))}>−</button>
@@ -38,9 +37,9 @@ function PurchaseControls({ family, variant, onAdd, onVariantChange, disabled })
           </div>
         </div>
       </div>
-      <button type="button" className={styles.add} disabled={disabled} onClick={() => {
-        onAdd(family.id, variant.id, quantity);
-        setReceipt(`${quantity} × ${variant.name} added to your cart.`);
+      <button type="button" className={styles.add} disabled={disabled} onClick={event => {
+        const added = onAdd(family.id, variant.id, quantity, event.currentTarget);
+        setReceipt(added ? `${added} × ${variant.name} added to your cart.` : "This finish has reached the cart quantity limit.");
       }}>Add to Cart <span aria-hidden="true">＋</span></button>
       <p className={styles.receipt} role="status">{receipt}</p>
     </div>
@@ -72,7 +71,7 @@ export default function ProductsGallery({ families, familyId, selectedVariantsBy
     selectTab(families[next[event.key]].id);
   }
   return (
-    <section id="products" ref={section} className={styles.section} data-finish={variant?.finish ?? "black"} aria-labelledby="af-products-heading">
+    <section id="products" ref={section} className={styles.section} data-finish={variant.id} aria-labelledby="af-products-heading">
       <div className="af-container">
         <h2 id="af-products-heading" className={styles.heading}>Find Your <span>Finish</span></h2>
         <div className={styles.tabs} role="tablist" aria-label="Product families">

@@ -53,7 +53,9 @@ function fittedStoryPoses(viewport, rig, sections) {
 
 // Single scroll owner for the narrative root, camera and mechanical progress.
 // Family handoffs act on an outer group; inspection acts on a nested pivot.
-export default function ScrollChoreographyController({ productRootRef, rig, onChoreographyActiveChange }) {
+export default function ScrollChoreographyController({
+  productRootRef, rig, inspectionRef, onInspectionSectionChange,
+}) {
   const get = useThree(state => state.get);
   useLayoutEffect(() => {
     const root = productRootRef.current;
@@ -63,34 +65,74 @@ export default function ScrollChoreographyController({ productRootRef, rig, onCh
     const sections = ids.map(id => document.getElementById(id));
     if (!root || sections.some(el => !el)) return;
     const reveal = sections[3];
+    const detailTrack = sections[2].closest("[data-detail-track]");
+    const banner = document.getElementById("product-parallax-banner");
     const frame = reveal.querySelector("[data-reveal-frame]");
     const slot = reveal.querySelector("[data-reveal-slot]");
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
-    let portrait, viewport;
-    let centers, top, end, arrival, poses, timelines = [];
-    let active;
+    let viewport, compact;
+    let centers, top, end, bannerStart, takeCover, arrival, poses, timelines = [];
+    const inspection = inspectionRef.current;
+    let inspectionSection, laneSection;
+
+    function updateInspection(y) {
+      const { width, height } = viewport;
+      const index = y <= Math.max(1, centers[0] + height * .075) ? 0
+        : Math.abs(y - centers[4]) <= height * .085 ? 4
+          : Math.abs(y - centers[5]) <= height * .09 ? 5 : null;
+      const section = index === null ? null : ids[index];
+      inspection.exclusive = y >= bannerStart && y <= end;
+      inspection.section = section;
+
+      if (section && laneSection !== section) {
+        const hero = index === 0;
+        const copy = hero ? sections[0].querySelector("[data-hero-copy]") : sections[index].firstElementChild;
+        const rect = copy.getBoundingClientRect();
+        const relativeBottom = rect.bottom + y - centers[index];
+        const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+        const edge = Math.max(12, width * .04);
+        const lane = {
+          left: !compact && index !== 4 ? rect.right + 12 : edge,
+          right: !compact && index === 4 ? rect.left - 12 : width - edge,
+          top: compact ? Math.max(header + 10, relativeBottom + 10) : header + 12,
+          bottom: hero
+            ? (compact ? sections[0].querySelector("[data-hero-action]") : sections[0].lastElementChild)
+              .getBoundingClientRect().top + y - centers[0] - 12
+            : height - 22,
+        };
+        inspection.lane = lane;
+        inspection.placeOverlay?.(lane);
+      }
+      laneSection = section;
+      if (inspectionSection !== section) {
+        inspectionSection = section;
+        onInspectionSectionChange(section);
+      }
+    }
 
     function measure() {
-      // The banner animates the Canvas ancestor. Measure its layout size,
-      // independent of that transform and in the same pass as the CSS slot.
+      laneSection = null;
       viewport = { width: canvasContainer.clientWidth, height: canvasContainer.clientHeight };
-      portrait = matchMedia("(max-aspect-ratio: 3/4)").matches;
+      compact = matchMedia("(max-aspect-ratio: 3/4)").matches;
       const y = window.scrollY;
       const height = viewport.height;
-      centers = sections.map(el => {
-        const rect = el.getBoundingClientRect();
-        return y + rect.top + (rect.height - height) / 2;
+      centers = sections.map((el, i) => {
+        const start = (i === 2 ? detailTrack : el).getBoundingClientRect().top;
+        return y + start + (el.offsetHeight - height) / 2;
       });
       top = y + reveal.getBoundingClientRect().top;
       end = top + Math.max(0, reveal.offsetHeight - frame.offsetHeight);
       arrival = top - height;
+      bannerStart = y + banner.getBoundingClientRect().top - height;
+      takeCover = bannerStart + height * .72;
       const rect = slot.getBoundingClientRect();
       const frameY = frame.getBoundingClientRect().top;
       poses = rig.camera ? fittedStoryPoses(viewport, rig, sections) :
         ["hero", "performanceDetail", "performanceDetail", "acousticReveal", "configurator", "finale"]
           .map(name => resolveProductState(name, { viewport, modelBounds: rig.bounds }));
       const cameraPose = rig.camera ? poses[0].camera : poses[3].camera;
-      poses[3] = fitStagePose(rig.expandedBounds, rig.camera ? [-.07, -.23, 0] : [.03, -.77, -.035],
+      const revealBounds = compact && rig.compactRevealBounds ? rig.compactRevealBounds : rig.expandedBounds;
+      poses[3] = fitStagePose(revealBounds, rig.revealRotation ?? [.03, -.77, -.035],
         cameraPose, viewport, { left: rect.left, right: rect.right,
           top: rect.top - frameY, bottom: rect.bottom - frameY }, .93);
       timelines.forEach(t => t.kill());
@@ -103,31 +145,24 @@ export default function ScrollChoreographyController({ productRootRef, rig, onCh
     function update(y) {
       const h = viewport.height;
       const reduced = preference.matches;
-      const inspecting = y <= centers[0] + 1 || y >= centers[5];
-      if (active !== !inspecting) {
-        active = !inspecting;
-        onChoreographyActiveChange(active);
-      }
-      let part = 0, display = 1;
+      updateInspection(y);
+      let part = 0, display = 1, opacity = 1;
       if (y < centers[2]) {
         const i = y < centers[1] ? 0 : 1;
         const t = fraction(y, centers[i], centers[i + 1]);
         timelines[i].sample(reduced ? Number(t >= .5) : t);
       } else if (y < arrival) {
-        const t = fraction(y, centers[2], arrival);
-        timelines[2].sample(reduced ? Number(t >= .6) : t);
-        display = reduced ? Number(t < .6) : 1 - phase(t, .25, .9);
-        if (portrait && !reduced) {
-          const depth = camera.position.z - root.position.z;
-          root.position.y -= phase(t, .5, 1) * 2 * depth * Math.tan(camera.fov * Math.PI / 360);
-        }
+        const cover = fraction(y, bannerStart, takeCover);
+        timelines[2].sample(reduced ? Number(cover >= .65) : phase(cover, .15, 1));
+        display = reduced ? Number(cover < .65) : 1 - phase(cover, .12, .8);
+        opacity = 1 - phase(cover, .1, .85);
       } else if (y <= end) {
         timelines[2].sample(1);
         display = 0;
         part = reduced ? 1 : phase(fraction(y, top, end), .08, .94);
-        // On portrait the incoming copy crosses the screen vertically. Bring
-        // the object in with the lower cell instead of crossing the heading.
-        if (portrait && y < top) {
+        if (y < top) {
+          // Keep the live product aligned to the incoming reveal's model slot.
+          opacity = phase(fraction(y, arrival, top), .12, .82);
           const depth = camera.position.z - root.position.z;
           root.position.y -= (top - y) * 2 * depth * Math.tan(camera.fov * Math.PI / 360) / h;
         }
@@ -140,7 +175,8 @@ export default function ScrollChoreographyController({ productRootRef, rig, onCh
         const t = fraction(y, centers[4], centers[5]);
         timelines[4].sample(reduced ? Number(t >= .5) : t);
       }
-      rig.sample(part, display);
+      canvasContainer.style.opacity = opacity === 1 ? "" : opacity;
+      rig.sample(part, display, compact);
       invalidate();
     }
 
@@ -160,9 +196,11 @@ export default function ScrollChoreographyController({ productRootRef, rig, onCh
       observer.disconnect();
       preference.removeEventListener("change", refresh);
       trigger.kill();
+      canvasContainer.style.removeProperty("opacity");
       timelines.forEach(t => t.kill());
-      onChoreographyActiveChange(false);
+      inspection.section = null;
+      onInspectionSectionChange(null);
     };
-  }, [get, rig, productRootRef, onChoreographyActiveChange]);
+  }, [get, rig, productRootRef, inspectionRef, onInspectionSectionChange]);
   return null;
 }

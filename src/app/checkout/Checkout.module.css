@@ -1,0 +1,66 @@
+.main { padding-block: clamp(112px, 11vw, 154px) 68px; }
+.main h1 {
+  margin: 12px 0 clamp(22px, 4vw, 42px);
+  font: 600 clamp(39px, 6.6vw, 82px)/1.04 var(--af-font-heading);
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+.back { color: var(--af-accent); font: 650 13px/1.4 var(--af-font-button); text-decoration: underline; text-underline-offset: 4px; }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  align-items: start;
+  gap: clamp(18px, 4vw, 52px);
+}
+.formSections { display: grid; gap: 15px; }
+.fields {
+  min-inline-size: 0;
+  padding: 14px clamp(14px, 2.5vw, 25px) 22px;
+  border: 1px solid var(--af-border);
+  border-radius: 15px;
+  background: var(--af-surface);
+}
+.fields legend {
+  margin-inline-start: 2px;
+  padding-inline: 7px;
+  border-radius: 4px;
+  background: var(--af-background);
+  font: 600 clamp(20px, 2.6vw, 29px)/1.25 var(--af-font-heading);
+}
+.fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.fieldGrid label { min-width: 0; font: 550 14px/1.45 var(--af-font-body); }
+.fieldGrid small { color: var(--af-text-secondary); }
+.fieldGrid input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 5px;
+  padding-inline: 11px;
+  border: 1px solid var(--af-border-strong);
+  border-radius: 8px;
+  background: var(--af-input-bg);
+}
+.wide { grid-column: 1 / -1; }
+.submit { margin-top: 20px; }
+.submit p { margin-bottom: 12px; color: var(--af-text-secondary); font: 400 13px/1.65 var(--af-font-body); }
+.submit .error { margin: 14px 0 0; color: var(--af-text-primary); font-weight: 650; }
+.place { width: 100%; justify-content: center; }
+.empty, .receipt {
+  padding: clamp(18px, 4vw, 38px);
+  border: 1px solid var(--af-border);
+  border-radius: 15px;
+  background: var(--af-surface);
+}
+.empty { max-width: 600px; }
+.empty p, .receipt p { color: var(--af-text-secondary); margin-bottom: 20px; }
+.receipt dl { margin-bottom: 16px; }
+.receipt dt { font: 650 13px/1.5 var(--af-font-button); }
+.receipt dd { color: var(--af-accent); font: 650 clamp(17px, 3vw, 29px)/1.4 var(--af-font-heading); overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 500px) {
+  .fieldGrid { grid-template-columns: minmax(0, 1fr); }
+}

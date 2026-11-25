@@ -6,8 +6,8 @@
  * Light: Palette 4 — Cool
  *
  * Saira — Headings
- * Montserrat — Body and Navigation
- * Inter — Buttons and UI
+ * Inter — Body
+ * Montserrat — Buttons and Navigation
  */
 
 /* ========================================
@@ -34,18 +34,18 @@
     sans-serif;
 
   --af-font-body:
-    var(--font-af-body, "Montserrat"),
-    "Montserrat",
+    var(--font-af-body, "Inter"),
+    "Inter",
     sans-serif;
 
   --af-font-button:
-    var(--font-af-button, "Inter"),
-    "Inter",
+    var(--font-af-button, "Montserrat"),
+    "Montserrat",
     sans-serif;
 
   /* Shared layout */
   --af-container-max: 1390px;
-  --af-page-gutter: clamp(20px, 5vw, 88px);
+  --af-page-gutter: clamp(20px, 5%, 88px);
   --af-container-inset: max(var(--af-page-gutter), calc((100% - var(--af-container-max)) / 2));
   --af-section-space: clamp(80px, 10vw, 150px);
 
@@ -157,7 +157,6 @@ html {
   width: 100%;
   min-height: 100%;
   overflow-x: clip;
-  scrollbar-gutter: stable;
   scroll-behavior: auto;
 
   background-color: var(--af-background);
@@ -440,26 +439,6 @@ canvas {
   transition:
     opacity 720ms cubic-bezier(.22,1,.36,1),
     visibility 0s linear 720ms;
-}
-
-/*
- * Banner-only 3D visibility.
- *
- * Different from the permanent exit
- * used by the Products section.
- */
-.af-cinematic-layer.is-banner-hidden {
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 620ms cubic-bezier(.22,1,.36,1),
-    visibility 0s linear 620ms;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .af-cinematic-layer.is-banner-hidden {
-    transition: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

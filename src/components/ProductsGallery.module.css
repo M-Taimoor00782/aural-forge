@@ -20,9 +20,9 @@
   font-family: var(--af-font-body);
   transition: background-color .35s;
 }
-.section[data-finish="red"] { --accent-dark: #f1ab9c; --accent-light: #853f32; --tint: #a56b5c; }
-.section[data-finish="blue"] { --accent-dark: #acc9f5; --accent-light: #315789; --tint: #658bc8; }
-.section[data-finish="white"] { --accent-dark: #e5e2da; --accent-light: #565348; --tint: #aaa999; }
+.section[data-finish="signature-red"] { --accent-dark: #eda5af; --accent-light: #873046; --tint: #995466; }
+.section[data-finish="ice-silver"] { --accent-dark: #bed4e1; --accent-light: #405f70; --tint: #829fb0; }
+.section[data-finish="burnished-copper"] { --accent-dark: #dfb399; --accent-light: #7a4a32; --tint: #ae805f; }
 :global([data-af-theme="light"]) .section {
   --base: #faf9f7; --tile: #dcdad5; --paper: #f9f8f4;
   --accent: var(--accent-light); --on-accent: white;

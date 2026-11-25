@@ -1,0 +1,45 @@
+.main { padding-block: clamp(114px, 12vw, 170px) clamp(46px, 8vw, 105px); }
+.article { max-width: 780px; margin-inline: auto; }
+.intro { padding-bottom: clamp(23px, 4vw, 48px); border-bottom: 1px solid var(--af-border-strong); }
+.back {
+  display: inline-block;
+  margin-bottom: clamp(22px, 4vw, 38px);
+  color: var(--af-accent);
+  font: 650 12px/1.5 var(--af-font-button);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.eyebrow {
+  margin-bottom: 12px;
+  color: var(--af-accent);
+  font: 650 11px/1.5 var(--af-font-button);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.intro h1 {
+  margin: 0 0 15px;
+  font: 600 clamp(37px, 6.3vw, 82px)/1.05 var(--af-font-heading);
+  letter-spacing: -.05em;
+  text-wrap: balance;
+}
+.lead, .section p {
+  max-width: 65ch;
+  color: var(--af-text-secondary);
+  font: 400 clamp(15px, 1.5vw, 18px)/1.75 var(--af-font-body);
+}
+.section { padding-block: clamp(21px, 4vw, 38px); border-bottom: 1px solid var(--af-border); }
+.section h2, .contact h2 {
+  margin-bottom: 8px;
+  font: 600 clamp(22px, 3vw, 34px)/1.16 var(--af-font-heading);
+  letter-spacing: -.028em;
+}
+.contact {
+  margin-top: clamp(22px, 4vw, 42px);
+  border: 1px solid var(--af-border);
+  border-radius: 14px;
+  padding: clamp(17px, 4vw, 32px);
+  background: var(--af-surface);
+}
+.contact ul { list-style: none; color: var(--af-accent); font-size: 14px; }
+.contact a { overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 4px; }
+

@@ -9,6 +9,7 @@ import {
 
 import ProductHero from "./ProductHero";
 import ProductParallaxBanner from "./ProductParallaxBanner";
+import ProductInspectionControls from "./ProductInspectionControls";
 import styles from "./StorySections.module.css";
 
 /*
@@ -41,28 +42,28 @@ const PRODUCT_STORIES = {
     hero: {
       title: ["Sound,", "sculpted."],
       description:
-        "Soft cushions meet sculpted earcups in a pair of headphones made for a closer listen.",
+        "Sculpted earcups and soft cushions frame a closer listen.",
     },
 
     performance: {
       eyebrow: "02 / Listening Experience",
       title: ["Hear every", "dimension."],
       description:
-        "Follow the layers of a track. From its quietest texture to its most expressive moment, discover a more intentional way to listen.",
+        "Settle into a track and listen for the details between the notes.",
     },
 
     detail: {
       eyebrow: "03 / Form & Finish",
       title: ["Made to", "be noticed."],
       description:
-        "Sculpted earcups, considered proportions, and contrasting surfaces give the headphones their distinctive presence.",
+        "Metallic cups sit beside dark cushions, tracing the shape of the earcup.",
     },
 
     reveal: {
       eyebrow: "04 / Acoustic Architecture",
       title: ["Beyond", "the surface."],
       description:
-        "Go beneath the assembled form as the earcup layers separate in a controlled mechanical reveal, then return to one complete design.",
+        "Watch the ear pads and outer covers draw away from the earcups, then settle back into place.",
     },
 
     configurator: {
@@ -76,7 +77,7 @@ const PRODUCT_STORIES = {
       eyebrow: "06 / The Final Note",
       title: ["Keep the", "feeling."],
       description:
-        "An unmistakable silhouette. A personal finish. Audio equipment that makes a lasting impression.",
+        "Choose a finish that brings out the curve of the earcups and headband.",
     },
   },
 
@@ -91,21 +92,21 @@ const PRODUCT_STORIES = {
       eyebrow: "02 / Everyday Listening",
       title: ["Make space", "for sound."],
       description:
-        "From the first track of the morning to a moment of calm, bring your listening ritual wherever life moves.",
+        "Take your listening from the first track of the morning to the last stop of the day.",
     },
 
     detail: {
       eyebrow: "03 / Compact Craft",
       title: ["Every detail", "counts."],
       description:
-        "Discover the balance between the individual earbuds and the charging case that brings them together.",
+        "The sculpted case holds two earbuds beneath a hinged lid.",
     },
 
     reveal: {
       eyebrow: "04 / Inside the Case",
       title: ["Beyond", "the case."],
       description:
-        "A closer perspective on the case, its lid, and the earbuds inside — distinct components of one cohesive form.",
+        "Follow the hinge as the lid opens and the earbuds rise from their sockets.",
     },
 
     configurator: {
@@ -119,7 +120,7 @@ const PRODUCT_STORIES = {
       eyebrow: "06 / The Everyday Edit",
       title: ["Made to", "move."],
       description:
-        "Considered proportions, an effortless silhouette, and a finish that feels like your own.",
+        "The case closes into a compact profile. The finish is yours to choose.",
     },
   },
 };
@@ -174,6 +175,8 @@ function StoryPanel({
 export default function StorySections({
   familyId = DEFAULT_PRODUCT_FAMILY_ID,
   variantId,
+  inspectionSection,
+  inspectionRef,
 }) {
   const family = getProductFamily(familyId);
 
@@ -185,6 +188,9 @@ export default function StorySections({
     family.id,
     variantId
   );
+  const inspection = section => inspectionSection === section
+    ? <ProductInspectionControls section={section} inspectionRef={inspectionRef} />
+    : null;
 
   return (
     <main className={styles.story}>
@@ -195,6 +201,7 @@ export default function StorySections({
         content={story.hero}
         variant={activeVariant}
         price={formatPrice(activeVariant)}
+        inspection={inspection("hero")}
       />
 
       {/* 02 — PERFORMANCE */}
@@ -213,17 +220,19 @@ export default function StorySections({
 
       {/* 03 — DETAIL */}
 
-      <section
-        id="detail"
-        className={styles.section}
-        aria-labelledby="detail-heading"
-      >
-        <StoryPanel
+      <div className={styles.detailTrack} data-detail-track>
+        <section
           id="detail"
-          content={story.detail}
-          position="right"
-        />
-      </section>
+          className={`${styles.section} ${styles.pinnedDetail}`}
+          aria-labelledby="detail-heading"
+        >
+          <StoryPanel
+            id="detail"
+            content={story.detail}
+            position="right"
+          />
+        </section>
+      </div>
 
       {/* PRODUCT-SPECIFIC IMAGE INTERLUDE */}
 
@@ -249,12 +258,14 @@ export default function StorySections({
         id="configurator"
         className={styles.section}
         aria-labelledby="configurator-heading"
+        tabIndex={-1}
       >
         <StoryPanel
           id="configurator"
           content={story.configurator}
           position="right"
         />
+        {inspection("configurator")}
       </section>
 
       {/* 06 — FINALE */}
@@ -263,11 +274,13 @@ export default function StorySections({
         id="finale"
         className={styles.section}
         aria-labelledby="finale-heading"
+        tabIndex={-1}
       >
         <StoryPanel
           id="finale"
           content={story.finale}
         />
+        {inspection("finale")}
       </section>
     </main>
   );

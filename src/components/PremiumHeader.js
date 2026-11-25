@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+"use client";
+
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { formatPrice, isProductFamilyReady } from "@/config/productFamilies";
+import Link from "next/link";
+import { getCartTotals, removeCartItem, useCart } from "@/lib/cartStore";
+import CartQuantity from "./CartQuantity";
+import BrandLockup from "./BrandLockup";
 import styles from "./PremiumHeader.module.css";
 
 function HeaderIcon({ name }) {
@@ -90,6 +96,16 @@ function toggleTheme() {
   }
 }
 
+function ThemeToggle() {
+  return (
+    <button type="button" className={`${styles.icon} ${styles.theme}`} onClick={toggleTheme}
+      aria-label="Toggle dark or light theme" title="Toggle dark or light theme">
+      <span className={styles.sun}><HeaderIcon name="sun" /></span>
+      <span className={styles.moon}><HeaderIcon name="moon" /></span>
+    </button>
+  );
+}
+
 function Drawer({ id, label, heading, open, fromLeft, onClose, children }) {
   return (
     <div className={styles.overlay} data-open={open} inert={!open}>
@@ -116,21 +132,39 @@ const PANEL_IDS = {
   cart: "af-header-cart-panel",
 };
 
-export default function PremiumHeader({ families, familyId, transitioning, onSelectFamily, onHome, cart, onRemove }) {
+export const HEADER_FAMILIES = [
+  { id: "headphones", label: "Headphones" },
+  { id: "earbuds", label: "Wireless Earbuds" },
+  { id: "product-03", label: "Smartwatch" },
+];
+
+export default function PremiumHeader({ ref, families = HEADER_FAMILIES, familyId, transitioning, onSelectFamily, onHome }) {
   const [panel, setPanel] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const count = cart.reduce((sum, line) => sum + line.quantity, 0);
-  const subtotal = cart.reduce((sum, line) => sum + line.quantity * line.price, 0);
+  const { lines: cart, ready } = useCart();
+  const { count, subtotal, currency } = getCartTotals(cart);
   const brand = useRef(null);
+  const cartOpener = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    openCart(opener) {
+      cartOpener.current = opener;
+      setPanel("cart");
+    },
+  }), []);
 
   useEffect(() => {
     if (!panel) return;
 
     const drawer = document.getElementById(PANEL_IDS[panel]);
     const trigger = document.querySelector(`[aria-controls="${drawer.id}"]`);
+    const opener = panel === "cart" ? cartOpener.current ?? trigger : trigger;
     const fallback = brand.current;
     const root = document.documentElement;
     const overflow = root.style.overflowY;
+    const gutter = root.style.scrollbarGutter;
+    // Keep the layout width when locking a classic scrollbar. Overlay scrollbars need no gutter.
+    if (window.innerWidth > root.clientWidth) root.style.scrollbarGutter = "stable";
     root.style.overflowY = "hidden";
 
     const initialFocus = drawer.querySelector("input") || drawer.querySelector("button");
@@ -171,7 +205,9 @@ export default function PremiumHeader({ families, familyId, transitioning, onSel
       document.removeEventListener("focusin", containFocus);
       window.removeEventListener("resize", closeHiddenTrigger);
       root.style.overflowY = overflow;
-      const target = trigger.getClientRects().length ? trigger : fallback;
+      root.style.scrollbarGutter = gutter;
+      cartOpener.current = null;
+      const target = opener.isConnected && opener.getClientRects().length ? opener : fallback;
       target?.focus({ preventScroll: true });
     };
   }, [panel]);
@@ -193,16 +229,22 @@ export default function PremiumHeader({ families, familyId, transitioning, onSel
     };
   }
 
-  function familyButton({ id, label }) {
+  function familyAction({ id, label }, searchResult = false) {
     const ready = isProductFamilyReady(id);
+    const className = searchResult ? styles.result : styles.navLink;
+    const content = <>{label}{searchResult ? <span>{ready ? "Explore" : "Coming soon"}</span> :
+      !ready && <span className={styles.soon}>Soon</span>}</>;
+    if (!onSelectFamily && ready) {
+      return <Link key={id} href={`/?family=${id}#hero`} className={className}
+        aria-label={`Explore ${label}`} onNavigate={() => setPanel(null)}>{content}</Link>;
+    }
     return (
-      <button key={id} type="button" className={styles.navLink}
+      <button key={id} type="button" className={className}
         aria-pressed={familyId === id}
-        aria-label={ready ? `Explore ${label}` : `${label} — coming soon`}
+        aria-label={ready ? `Explore ${label}` : `${label}, coming soon`}
         disabled={!ready || transitioning}
         onClick={() => selectFamily(id)}>
-        {label}
-        {!ready && <span className={styles.soon}>Soon</span>}
+        {content}
       </button>
     );
   }
@@ -228,66 +270,62 @@ export default function PremiumHeader({ families, familyId, transitioning, onSel
         <button {...triggerProps("menu", "Open product menu")} className={`${styles.icon} ${styles.menu}`}>
           <HeaderIcon name="menu" />
         </button>
-        <a ref={brand} href="#hero" className={styles.brand} aria-label="Aural Forge — back to hero"
-          onClick={(event) => { event.preventDefault(); onHome(); }}>
-          <span className={styles.mark} aria-hidden="true"><span /></span>
-          AURAL FORGE
-        </a>
+        <Link ref={brand} href={onHome ? "#hero" : "/#hero"} className={styles.brand}
+          aria-label="Aural Forge, back to the beginning"
+          onClick={onHome ? (event) => { event.preventDefault(); onHome(); } : undefined}>
+          <BrandLockup />
+        </Link>
         <nav className={styles.navigation} aria-label="Product navigation">
-          {families.map(familyButton)}
+          {families.map(family => familyAction(family))}
         </nav>
         <div className={styles.utilities}>
           <button {...triggerProps("search", "Search products")} title="Search products"
             className={`${styles.icon} ${styles.search}`}><HeaderIcon name="search" /></button>
-          <button {...triggerProps("cart", `Open demo cart, ${count} ${count === 1 ? "item" : "items"}`)} title="Demo cart"
+          <button {...triggerProps("cart", `Open cart, ${count} ${count === 1 ? "item" : "items"}`)} title="Cart"
             className={styles.icon}><HeaderIcon name="cart" />{count > 0 && <span className={styles.count} aria-hidden="true">{count > 99 ? "99+" : count}</span>}</button>
-          <button type="button" className={`${styles.icon} ${styles.theme}`} onClick={toggleTheme}
-            aria-label="Toggle dark or light theme" title="Toggle dark or light theme">
-            <span className={styles.sun}><HeaderIcon name="sun" /></span>
-            <span className={styles.moon}><HeaderIcon name="moon" /></span>
-          </button>
+          <ThemeToggle />
         </div>
       </div>
       <Drawer id={PANEL_IDS.menu} label="Product navigation" heading="EXPLORE" fromLeft open={panel === "menu"} onClose={() => setPanel(null)}>
         {searchField("af-mobile-nav-search-field", "SEARCH PRODUCTS", "Headphones, earbuds...")}
         <p className={styles.listLabel}>OUR COLLECTION</p>
-        <nav aria-label="Product families" className={styles.list}>{matches.map(familyButton)}</nav>
+        <nav aria-label="Product families" className={styles.list}>{matches.map(family => familyAction(family))}</nav>
         {!matches.length && <p role="status" className={styles.detail}>No matching product families.</p>}
       </Drawer>
       <Drawer id={PANEL_IDS.search} label="Search products" heading="SEARCH" open={panel === "search"} onClose={() => setPanel(null)}>
         {searchField("af-header-search-input", "FIND A PRODUCT", "Search the collection...")}
         <div className={styles.results}>
-          {matches.map(({ id, label }) => (
-            <button key={id} type="button" disabled={!isProductFamilyReady(id) || transitioning}
-              onClick={() => selectFamily(id)} className={styles.result}>
-              {label}<span>{isProductFamilyReady(id) ? "Explore" : "Coming soon"}</span>
-            </button>
-          ))}
+          {matches.map(family => familyAction(family, true))}
           {!matches.length && <p role="status" className={styles.detail}>No matching product families.</p>}
         </div>
       </Drawer>
-      <Drawer id={PANEL_IDS.cart} label="Demo cart" heading="YOUR BAG" open={panel === "cart"} onClose={() => setPanel(null)}>
-        <h2 className={styles.cartTitle}>Demo cart</h2>
+      <Drawer id={PANEL_IDS.cart} label="Cart" heading="YOUR BAG" open={panel === "cart"} onClose={() => setPanel(null)}>
+        <h2 className={styles.cartTitle}>Cart</h2>
         {cart.length ? <>
           <ul className={styles.cartLines}>
             {cart.map(line => <li key={line.key}>
               <strong>{line.familyName}</strong>
-              <span>{line.finish} · {line.quantity} × {formatPrice(line)}{line.demoPrice && " (demo price)"}</span>
+              <span>{line.finish}<br />{formatPrice(line)} each</span>
               <b>{formatPrice({ ...line, price: line.price * line.quantity })}</b>
-              <button type="button" aria-label={`Remove ${line.familyName}, ${line.finish}`} onClick={event => {
+              <CartQuantity line={line} />
+              <button type="button" className={styles.remove} data-cart-remove
+                aria-label={`Remove ${line.familyName}, ${line.finish}`} onClick={event => {
                 const row = event.currentTarget.closest("li");
                 const next = row.nextElementSibling ?? row.previousElementSibling;
-                const target = next?.querySelector("button") ?? row.closest("[role=dialog]").querySelector("button");
+                const target = next?.querySelector("[data-cart-remove]") ?? row.closest("[role=dialog]").querySelector("button");
                 target.focus({ preventScroll: true });
-                onRemove(line.key);
+                removeCartItem(line.key);
               }}>Remove</button>
             </li>)}
           </ul>
-          <p className={styles.subtotal}><span>Subtotal</span><strong>{formatPrice({ price: subtotal, currency: cart[0].currency })}</strong></p>
-        </> : <p className={styles.detail}>Your cart is empty.</p>}
-        <a className={styles.collection} href="#products" onClick={() => setPanel(null)}>
+          <p className={styles.subtotal} aria-live="polite"><span>Subtotal</span><strong>{formatPrice({ price: subtotal, currency })}</strong></p>
+        </> : <p className={styles.detail}>{ready ? "Your cart is empty." : "Loading cart…"}</p>}
+        <Link className={`af-button ${styles.viewCart}`} href="/cart" onNavigate={() => setPanel(null)}>
+          View Cart
+        </Link>
+        <Link className={styles.collection} href={onHome ? "#products" : "/#products"} onNavigate={() => setPanel(null)}>
           Explore the collection <span aria-hidden="true">↗</span>
-        </a>
+        </Link>
       </Drawer>
     </header>
   );

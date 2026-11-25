@@ -1,31 +1,29 @@
 ﻿export const PRODUCT_REVEAL = {
   earPad: {
-    localX: -0.08,
-    localY: 0.06,
+    localX: -0.16,
+    localY: -0.05,
     localZ: -1.45,
+    travel: [0.19, 0.76],
 
     tilt: {
-      x: 0.09,
-      y: -0.04,
-      z: -0.06,
+      x: 0.04,
+      y: -0.13,
+      z: -0.05,
     },
   },
 
   cover: {
-    localX: 0.1,
-    localY: -0.05,
+    localX: 0.18,
+    localY: 0.09,
     localZ: 1.7,
+    travel: [0.35, 0.84],
 
     tilt: {
-      x: -0.08,
-      y: 0.06,
-      z: 0.05,
+      x: -0.09,
+      y: 0.12,
+      z: 0.04,
     },
   },
 
-  motion: {
-    duration: 1.0,
-    ease: "power2.inOut",
-    stagger: 0.28,
-  },
+  compactTravel: 0.82,
 };

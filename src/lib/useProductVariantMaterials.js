@@ -104,6 +104,7 @@ export function useProductVariantMaterials({
           }
 
           const clonedMaterial = material.clone();
+          Object.assign(clonedMaterial, configuration.surface);
 
           materialCloneCache.set(
             material,

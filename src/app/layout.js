@@ -10,9 +10,8 @@ import "./globals.css";
  * AURAL FORGE — ROOT LAYOUT
  *
  * Locked typography:
- * Headings — Saira
- * Body     — Montserrat
- * Buttons  — Inter
+ * Headings use Saira until a licensed Pattanakarn Condensed webfont is available.
+ * Body uses Inter. Controls and navigation use Montserrat.
  *
  * Global theme:
  * Dark / Light
@@ -29,13 +28,13 @@ const saira = Saira({
 
 const montserrat = Montserrat({
   subsets: ["latin"],
-  variable: "--font-af-body",
+  variable: "--font-af-button",
   display: "swap",
 });
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-af-button",
+  variable: "--font-af-body",
   display: "swap",
 });
 

@@ -1,3 +1,5 @@
+import { SIGNATURE_RED, ICE_SILVER, BURNISHED_COPPER } from "./productFinishes.js";
+
 /**
  * Product 02 — Wireless Earbuds
  *
@@ -9,11 +11,12 @@
  */
 
 export const DEFAULT_EARBUDS_VARIANT_ID =
-  "clean-blue";
+  SIGNATURE_RED.id;
 
 export const EARBUDS_MATERIAL_TARGETS = {
   body: {
     materialName: "black r",
+    surface: { metalness: 0.68, roughness: 0.32 },
     colorProperty: "color",
   },
 
@@ -24,6 +27,7 @@ export const EARBUDS_MATERIAL_TARGETS = {
 
   secondary: {
     materialName: "grey r",
+    surface: { metalness: 0.49, roughness: 0.40 },
     colorProperty: "color",
   },
 };
@@ -32,22 +36,13 @@ export const EARBUDS_MATERIAL_TARGETS = {
 // It retains its original dark appearance.
 
 export const EARBUDS_VARIANTS = [
-  {
-    id: "clean-blue", name: "Clean Blue", finish: "blue", swatch: "#3363B7",
-    description: "Cool blue shells with a pale indicator.", price: 189, currency: "USD",
-    materialColors: { body: "#3363B7", secondary: "#B5C1D2", accent: "#BFD6F5" },
-  },
-  {
-    id: "black", name: "Black", finish: "black", swatch: "#25272D",
-    description: "Graphite shells with a dark interior.", price: 189, currency: "USD",
-    materialColors: { body: "#27292F", secondary: "#595D65", accent: "#CBD0D5" },
-  },
-  {
-    id: "white", name: "White", finish: "white", swatch: "#EDEEE9",
-    description: "Soft white shells with contrasting dark tips.", price: 189, currency: "USD",
-    materialColors: { body: "#EFEFEA", secondary: "#CBCDCB", accent: "#F6F6F1" },
-  },
-];
+  { ...SIGNATURE_RED, description: "Red metallic shells with a deep burgundy case interior.",
+    materialColors: { body: SIGNATURE_RED.swatch, secondary: "#704452", accent: "#F4C6CD" } },
+  { ...ICE_SILVER, description: "Cool silver shells with a slate-blue interior.",
+    materialColors: { body: ICE_SILVER.swatch, secondary: "#7B909F", accent: "#E0EFF8" } },
+  { ...BURNISHED_COPPER, description: "Burnished copper shells with a deep bronze interior.",
+    materialColors: { body: BURNISHED_COPPER.swatch, secondary: "#795C50", accent: "#F1D3B9" } },
+].map(variant => ({ ...variant, price: 189, currency: "USD" }));
 
 export function getEarbudsVariant(variantId) {
   return EARBUDS_VARIANTS.find(variant => variant.id === variantId) ?? EARBUDS_VARIANTS[0];

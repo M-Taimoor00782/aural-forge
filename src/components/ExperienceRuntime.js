@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { resolveProductState } from "@/config/productStates";
+import { addCartItem } from "@/lib/cartStore";
 
 import {
   DEFAULT_PRODUCT_FAMILY_ID,
@@ -21,8 +22,12 @@ import {
 
 import ScrollStoryController from "./ScrollStoryController";
 import ProductsGallery from "./ProductsGallery";
-import PremiumHeader from "./PremiumHeader";
+import PremiumHeader, { HEADER_FAMILIES } from "./PremiumHeader";
 import StorySections from "./StorySections";
+import ProductFAQ from "./ProductFAQ";
+import FrequencySection from "./FrequencySection";
+import SiteFooter from "./SiteFooter";
+import closing from "./SiteClosingSections.module.css";
 
 import ExperienceCursor from "./ExperienceCursor";
 import ProductFamilyTransitionController from "./ProductFamilyTransitionController";
@@ -35,11 +40,17 @@ const ExperienceCanvas = dynamic(
   }
 );
 
-const HEADER_FAMILIES = [
-  { id: "headphones", label: "Headphones" },
-  { id: "earbuds", label: "Wireless Earbuds" },
-  { id: "product-03", label: "Smartwatch" },
-];
+function subscribeToFamilyLink(listener) {
+  window.addEventListener("popstate", listener);
+  return () => window.removeEventListener("popstate", listener);
+}
+
+function getFamilyFromLink() {
+  const id = new URLSearchParams(window.location.search).get("family");
+  return isProductFamilyReady(id) ? id : DEFAULT_PRODUCT_FAMILY_ID;
+}
+
+const getInitialFamily = () => DEFAULT_PRODUCT_FAMILY_ID;
 
 function navigateToHero() {
   const hero = document.getElementById("hero");
@@ -65,13 +76,13 @@ function SiteClosingSections({
   const [newsletterStatus, setNewsletterStatus] = useState("");
 
   const bodyFont =
-    "var(--font-af-body), Montserrat, sans-serif";
+    "var(--af-font-body)";
 
   const headingFont =
     "var(--font-af-heading), Saira, sans-serif";
 
   const buttonFont =
-    "var(--font-af-button), Inter, sans-serif";
+    "var(--af-font-button)";
 
   const muted = "var(--af-text-secondary)";
   const white = "var(--af-text-primary)";
@@ -81,7 +92,7 @@ function SiteClosingSections({
     event.preventDefault();
 
     setNewsletterStatus(
-      "Newsletter preview only. Subscriptions are not enabled yet; no email was saved."
+      "Newsletter signup is a preview. Your email was not saved."
     );
   }
 
@@ -95,7 +106,19 @@ function SiteClosingSections({
         color: white,
       }}
     >
-      {/* NEWSLETTER */}
+      <section id="about" className={closing.about} aria-labelledby="about-heading">
+        <div className={`af-container ${closing.aboutLayout}`}>
+          <div className={closing.editorialEntry}>
+            <h2 id="about-heading" className={closing.editorialHeading}>About Aural Forge</h2>
+          </div>
+          <div className={closing.aboutCopy}>
+            <p>Sound shapes everyday life. We bring the same care to what you hear and what you hold, from the curve of an earcup to the face of a watch.</p>
+          </div>
+        </div>
+      </section>
+
+      <FrequencySection onFamilySelect={onFamilySelect} />
+      <ProductFAQ families={HEADER_FAMILIES} activeFamilyId={activeFamilyId} />
 
       <section
         id="newsletter"
@@ -118,7 +141,7 @@ function SiteClosingSections({
             gap: "clamp(32px, 6vw, 90px)",
           }}
         >
-          <div>
+          <div className={closing.editorialEntry}>
             <span
               style={{
                 display: "block",
@@ -130,7 +153,7 @@ function SiteClosingSections({
                 letterSpacing: "0.2em",
               }}
             >
-              STAY IN FREQUENCY
+              THE AURAL FORGE LETTER
             </span>
 
             <h2
@@ -145,9 +168,9 @@ function SiteClosingSections({
                 letterSpacing: "-0.045em",
               }}
             >
-              A quieter kind
+              Notes from
               <br />
-              of update.
+              the studio.
             </h2>
 
             <p
@@ -160,9 +183,7 @@ function SiteClosingSections({
                 lineHeight: 1.85,
               }}
             >
-              Product announcements, design notes,
-              and stories from behind the sound.
-              Only the essentials.
+              New products, design notes, and a closer look at the details.
             </p>
           </div>
 
@@ -243,240 +264,14 @@ function SiteClosingSections({
               }}
             >
               {newsletterStatus ||
-                "Newsletter preview · Signup service coming soon"}
+                "Newsletter signup preview"}
             </p>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-
-      <footer
-        id="site-footer"
-        style={{
-          padding: "clamp(70px, 8vw, 110px) 0 28px",
-          background: "var(--af-background)",
-        }}
-      >
-        <div
-          className="af-container"
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(min(100%, 190px), 1fr))",
-            gap: "clamp(32px, 5vw, 70px)",
-          }}
-        >
-          {/* Brand */}
-
-          <div>
-            <a
-              href="#hero"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 13,
-                color: white,
-                fontFamily: headingFont,
-                fontSize: 20,
-                fontWeight: 650,
-                letterSpacing: "0.04em",
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  display: "grid",
-                  placeItems: "center",
-                  width: 34,
-                  height: 34,
-                  border: `1.5px solid ${gold}`,
-                  borderRadius: 9,
-                  color: gold,
-                  fontSize: 16,
-                }}
-              >
-                A
-              </span>
-
-              AURAL FORGE
-            </a>
-
-            <p
-              style={{
-                marginTop: 22,
-                color: muted,
-                fontFamily: bodyFont,
-                fontSize: 12,
-                lineHeight: 1.9,
-              }}
-            >
-              Sound, sculpted.
-              <br />
-              Designed to be experienced.
-            </p>
-          </div>
-
-          {/* Products */}
-
-          <nav
-            aria-label="Footer product navigation"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 15,
-            }}
-          >
-            <h3
-              style={{
-                marginBottom: 8,
-                fontFamily: headingFont,
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              Products
-            </h3>
-
-            {HEADER_FAMILIES.map(({ id, label }) => {
-              const ready = isProductFamilyReady(id);
-              const selected = activeFamilyId === id;
-
-              return (
-                <button
-                  type="button"
-                  key={id}
-                  disabled={!ready || transitioning}
-                  aria-pressed={selected}
-                  onClick={() => onFamilySelect(id)}
-                  data-af-cursor="interactive"
-                  style={{
-                    padding: 0,
-                    border: 0,
-                    background: "transparent",
-                    color: selected ? gold : muted,
-                    fontFamily: bodyFont,
-                    fontSize: 14,
-                    textAlign: "left",
-                    cursor: ready ? "pointer" : "not-allowed",
-                    opacity: ready ? 1 : 0.65,
-                  }}
-                >
-                  {label}
-                  {!ready && (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        color: "var(--af-accent)",
-                        fontSize: 10,
-                      }}
-                    >
-                      SOON
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Site links */}
-
-          <nav
-            aria-label="Footer site navigation"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 15,
-            }}
-          >
-            <h3
-              style={{
-                marginBottom: 8,
-                fontFamily: headingFont,
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              Explore
-            </h3>
-
-            {[
-              ["The Experience", "#hero"],
-              ["The Collection", "#products"],
-              ["Newsletter", "#newsletter"],
-            ].map(([label, href]) => (
-              <a
-                key={href}
-                href={href}
-                style={{
-                  color: muted,
-                  fontFamily: bodyFont,
-                  fontSize: 14,
-                }}
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
-
-          {/* Statement */}
-
-          <div>
-            <h3
-              style={{
-                marginBottom: 23,
-                fontFamily: headingFont,
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              Our philosophy
-            </h3>
-
-            <p
-              style={{
-                color: muted,
-                fontFamily: bodyFont,
-                fontSize: 12,
-                lineHeight: 1.9,
-              }}
-            >
-              Considered form.
-              <br />
-              Immersive sound.
-              <br />
-              No unnecessary noise.
-            </p>
-          </div>
-        </div>
-
-        <div
-          className="af-container"
-          style={{
-            marginTop: 85,
-            paddingTop: 24,
-            borderTop: "1px solid var(--af-border)",
-            display: "flex",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 15,
-            color: "var(--af-text-muted)",
-            fontFamily: bodyFont,
-            fontSize: 10,
-          }}
-        >
-          <span>
-            © {new Date().getFullYear()} Aural Forge.
-            All rights reserved.
-          </span>
-
-          <span>
-            A concept product experience.
-          </span>
-        </div>
-      </footer>
+      <SiteFooter families={HEADER_FAMILIES} activeFamilyId={activeFamilyId}
+        transitioning={transitioning} onFamilySelect={onFamilySelect} />
     </div>
   );
 }
@@ -609,9 +404,9 @@ export default function ExperienceRuntime() {
     };
   }, []);
 
-  const [activeFamilyId, setActiveFamilyId] = useState(
-    DEFAULT_PRODUCT_FAMILY_ID
-  );
+  const linkedFamilyId = useSyncExternalStore(subscribeToFamilyLink, getFamilyFromLink, getInitialFamily);
+  const [chosenFamilyId, setActiveFamilyId] = useState(null);
+  const activeFamilyId = chosenFamilyId ?? linkedFamilyId;
 
   const [
     selectedVariantsByFamily,
@@ -626,10 +421,8 @@ export default function ExperienceRuntime() {
     setActiveProductState,
   ] = useState("neutral");
 
-  const [
-    choreographyActive,
-    setChoreographyActive,
-  ] = useState(false);
+  const [inspectionSection, setInspectionSection] = useState(null);
+  const inspectionRef = useRef({});
 
   const [transitionPlan, setTransitionPlan] = useState(null);
 
@@ -642,7 +435,6 @@ export default function ExperienceRuntime() {
 
   const [readyFamilyId, setReadyFamilyId] = useState(null);
   const [shoppingActive, setShoppingActive] = useState(false);
-  const [bannerActive, setBannerActive] = useState(false);
 
   // Keep the shared 3D scene mounted.
   // Fade its presentation when the Products section takes over.
@@ -689,63 +481,12 @@ export default function ExperienceRuntime() {
     };
   }, []);
 
-  /*
-   * Product-specific parallax banner boundary.
-   *
-   * Hide the persistent cinematic Canvas while
-   * an image banner occupies the viewport.
-   *
-   * Keep the Canvas mounted so the existing
-   * scroll choreography and model state survive.
-   *
-   * The banner will use:
-   * id="product-parallax-banner"
-   */
-  useEffect(() => {
-    const banner = document.getElementById(
-      "product-parallax-banner"
-    );
+  const headerRef = useRef(null);
 
-    if (!banner) return;
-
-    if (
-      typeof IntersectionObserver === "undefined"
-    ) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setBannerActive(entry.isIntersecting);
-      },
-      {
-        root: null,
-        rootMargin: "-40px 0px -40px 0px",
-        threshold: 0,
-      }
-    );
-
-    observer.observe(banner);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  const [cart, setCart] = useState([]);
-
-  function addToCart(familyId, variantId, quantity) {
-    const variant = getProductFamilyVariant(familyId, variantId);
-    if (!isProductFamilyReady(familyId) || variant?.id !== variantId ||
-        !Number.isInteger(quantity) || quantity < 1 || quantity > 99) return;
-    const key = familyId + "/" + variantId;
-    setCart(lines => {
-      if (lines.some(line => line.key === key)) {
-        return lines.map(line => line.key === key ? { ...line, quantity: line.quantity + quantity } : line);
-      }
-      return [...lines, { key, familyId, variantId, familyName: getProductFamily(familyId).label,
-        finish: variant.name, demoPrice: variant.demoPrice, quantity, price: variant.price, currency: variant.currency }];
-    });
+  function addToCart(familyId, variantId, quantity, opener) {
+    const added = addCartItem(familyId, variantId, quantity);
+    headerRef.current?.openCart(opener);
+    return added;
   }
 
   function selectGalleryFamily(id) {
@@ -1011,6 +752,9 @@ export default function ExperienceRuntime() {
     []
   );
 
+  const availableInspection = !shoppingActive && !familyTransitionActive &&
+    !transitionPlan && readyFamilyId === activeFamilyId ? inspectionSection : null;
+
   return (
     <>
       <ScrollStoryController
@@ -1018,8 +762,7 @@ export default function ExperienceRuntime() {
       />
 
       <PremiumHeader
-        cart={cart}
-        onRemove={key => setCart(lines => lines.filter(line => line.key !== key))}
+        ref={headerRef}
         families={HEADER_FAMILIES}
         onHome={navigateToHero}
         familyId={activeFamilyId}
@@ -1031,18 +774,17 @@ export default function ExperienceRuntime() {
         className={[
           "af-cinematic-layer",
           shoppingActive ? "is-exiting" : "",
-          bannerActive ? "is-banner-hidden" : "",
         ].filter(Boolean).join(" ")}
         data-family={activeFamilyId}
         data-product-state={activeProductState}
-        aria-hidden={shoppingActive || bannerActive}
+        aria-hidden={shoppingActive}
       >
         <ExperienceCanvas
           familyId={activeFamilyId}
           variantId={selectedVariantId}
-          choreographyActive={choreographyActive}
-          familyTransitionActive={familyTransitionActive}
-          onChoreographyActiveChange={setChoreographyActive}
+          inspectionSection={availableInspection}
+          inspectionRef={inspectionRef}
+          onInspectionSectionChange={setInspectionSection}
           onStageReady={handleStageReady}
           onStageUnavailable={handleStageUnavailable}
           onStageMotionRegistration={handleStageMotionRegistration}
@@ -1052,6 +794,8 @@ export default function ExperienceRuntime() {
       <StorySections
         familyId={activeFamilyId}
         variantId={selectedVariantId}
+        inspectionSection={availableInspection}
+        inspectionRef={inspectionRef}
       />
 
       <ProductsGallery

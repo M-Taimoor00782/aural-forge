@@ -1,0 +1,6 @@
+.lockup { display: block; width: 100%; aspect-ratio: 504 / 132; }
+.lockup img { display: block; width: 100%; height: auto; }
+.lockup .light { display: none; }
+:global([data-af-theme="light"]) .lockup .dark { display: none; }
+:global([data-af-theme="light"]) .lockup .light { display: block; }
+

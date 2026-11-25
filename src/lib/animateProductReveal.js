@@ -8,29 +8,39 @@ export function phase(value, start, end) {
 
 // Sample absolute local transforms. Returning to the same scroll offset
 // restores exactly the same geometry, even after jumping across a section.
-export function headphoneMechanism(scene) {
+export function headphoneMechanism(scene, presentation) {
   const parts = [["Ear_Pad", PRODUCT_REVEAL.earPad], ["Cover", PRODUCT_REVEAL.cover]]
     .map(([name, config]) => {
       const mesh = scene.getObjectByName(name);
       const position = mesh.position.clone();
       const rotation = mesh.quaternion.clone();
-      const offset = new Vector3(config.localX, config.localY, config.localZ)
-        .applyQuaternion(rotation);
+      const slide = new Vector3(0, 0, config.localZ).applyQuaternion(rotation);
+      const clearance = new Vector3(config.localX, config.localY, 0).applyQuaternion(rotation);
       const { x, y, z } = config.tilt;
-      return { mesh, position, rotation, offset, target: rotation.clone()
+      return { mesh, position, rotation, slide, clearance, travel: config.travel, target: rotation.clone()
         .multiply(new Quaternion().setFromEuler(new Euler(x, y, z))) };
     });
 
-  return (progress) => {
-    parts.forEach(({ mesh, position, rotation, offset, target }, i) => {
-      const t = phase(progress, i * .16, .84 + i * .16);
-      mesh.position.copy(position).addScaledVector(offset, t);
-      mesh.quaternion.slerpQuaternions(rotation, target, t);
-    });
+  return (progress, display, compact = false) => {
+    const inspect = phase(progress, 0, .34);
+    const settle = phase(progress, .43, .84);
+    presentation.rotation.set(.12 * inspect - .065 * settle,
+      -.32 * inspect + .07 * settle, .03 * inspect);
+    presentation.scale.setScalar(1 - .075 * (1 - display) * (1 - inspect));
+
+    const distance = compact ? PRODUCT_REVEAL.compactTravel : 1;
+    for (const { mesh, position, rotation, slide, clearance, travel: [start, end], target } of parts) {
+      const withdraw = phase(progress, start, end);
+      const turn = phase(progress, start + .15, end);
+      // The paired rings share a mesh. Slide them clear of the rims before turning.
+      mesh.position.copy(position).addScaledVector(slide, distance * withdraw)
+        .addScaledVector(clearance, distance * turn);
+      mesh.quaternion.slerpQuaternions(rotation, target, turn);
+    }
   };
 }
 
-export function earbudsMechanism({ hinge, firstEarbud, secondEarbud }) {
+export function earbudsMechanism({ hinge, firstEarbud, secondEarbud }, presentation) {
   const openHinge = hinge.quaternion.clone();
   const closedHinge = new Quaternion();
   const buds = [firstEarbud, secondEarbud].map((mesh, i) => {
@@ -42,24 +52,28 @@ export function earbudsMechanism({ hinge, firstEarbud, secondEarbud }) {
     const seated = i ? new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
       : mesh.quaternion.clone();
     const turned = seated.clone().multiply(new Quaternion().setFromEuler(
-      new Euler(-.11, side * .31, side * -.12)
+      new Euler(-.18, side * .34, -side * .13)
     ));
-    return { mesh, side, dock, seated, turned, original: mesh.position.clone(),
+    return { mesh, side, dock, seated, turned, delay: i * .065, original: mesh.position.clone(),
       originalRotation: mesh.quaternion.clone() };
   });
 
   return (progress, display) => {
-    const lid = Math.max(phase(display, 0, .55), phase(progress, .02, .42));
+    const open = phase(progress, .03, .43);
+    const lid = Math.max(phase(display, 0, .55), open);
     hinge.quaternion.slerpQuaternions(closedHinge, openHinge, lid);
+    const settle = phase(progress, .43, .92);
+    presentation.rotation.set(-.05 * open + .025 * settle, -.18 * settle, .025 * settle);
+
     const displayLift = phase(display, .55, 1);
     for (const bud of buds) {
-      const delay = bud.side > 0 ? .04 : 0;
-      const lift = phase(progress, .42 + delay, .72 + delay);
-      const spread = phase(progress, .74 + delay, .96 + delay);
+      // Lift on the socket axis first. The buds only fan out once clear of the rim.
+      const lift = phase(progress, .38 + bud.delay, .72 + bud.delay);
+      const spread = phase(progress, .61 + bud.delay, .92 + bud.delay);
       bud.mesh.position.lerpVectors(bud.dock, bud.original, displayLift);
-      bud.mesh.position.y += .72 * lift + .14 * spread;
-      bud.mesh.position.x += bud.side * .32 * spread;
-      bud.mesh.position.z += .05 * spread;
+      bud.mesh.position.y += .60 * lift + .08 * spread;
+      bud.mesh.position.x += bud.side * .26 * spread;
+      bud.mesh.position.z += .08 * spread;
       bud.mesh.quaternion.slerpQuaternions(bud.seated, bud.originalRotation, displayLift);
       bud.mesh.quaternion.slerp(bud.turned, spread);
     }

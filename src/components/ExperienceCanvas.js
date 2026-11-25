@@ -7,9 +7,9 @@ import { PRODUCT_STATES } from "@/config/productStates";
 export default function ExperienceCanvas({
   familyId,
   variantId,
-  choreographyActive,
-  familyTransitionActive = false,
-  onChoreographyActiveChange,
+  inspectionSection,
+  inspectionRef,
+  onInspectionSectionChange,
   onStageReady,
   onStageUnavailable,
   onStageMotionRegistration,
@@ -37,11 +37,9 @@ export default function ExperienceCanvas({
       <ExperienceScene
         familyId={familyId}
         variantId={variantId}
-        choreographyActive={choreographyActive}
-        familyTransitionActive={familyTransitionActive}
-        onChoreographyActiveChange={
-          onChoreographyActiveChange
-        }
+        inspectionSection={inspectionSection}
+        inspectionRef={inspectionRef}
+        onInspectionSectionChange={onInspectionSectionChange}
         onStageReady={onStageReady}
         onStageUnavailable={onStageUnavailable}
         onStageMotionRegistration={

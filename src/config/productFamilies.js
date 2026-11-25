@@ -141,7 +141,7 @@ export const PRODUCT_FAMILIES = {
     },
 
     variants: SMARTWATCH_VARIANTS,
-    defaultVariantId: "black",
+    defaultVariantId: SMARTWATCH_VARIANTS[0].id,
     materialTargets: SMARTWATCH_MATERIAL_TARGETS,
 
     world: {
@@ -197,6 +197,11 @@ export function getProductFamilyVariant(
     ) ??
     null
   );
+}
+
+export function getProductFinishImage(familyId, variantId) {
+  const family = getProductFamily(familyId);
+  return `/images/finishes/${family.gallerySlug ?? family.id}-${variantId}.webp`;
 }
 
 export function getProductFamilyWorld(
