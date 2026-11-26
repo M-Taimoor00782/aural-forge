@@ -11,58 +11,52 @@ const KEY_ROTATIONS = {
 };
 
 export default function ProductInspectionControls({ section, inspectionRef }) {
-  const registerOverlay = useCallback(node => {
+  const registerSurface = useCallback(node => {
     if (!node) return;
     const inspection = inspectionRef.current;
-    function place(lane) {
-      if (!lane) return;
+    let previous;
+    function place(bounds) {
+      const [left, top, width, height] = bounds.map(Math.round);
+      const key = `${left},${top},${width},${height}`;
+      if (key === previous) return;
+      previous = key;
       Object.assign(node.style, {
-        left: `${lane.left}px`, top: `${lane.top}px`,
-        width: `${Math.max(0, lane.right - lane.left)}px`,
-        height: `${Math.max(0, lane.bottom - lane.top)}px`,
+        left: `${left}px`, top: `${top}px`,
+        width: `${width}px`, height: `${height}px`,
+        visibility: width > 0 && height > 0 ? "visible" : "hidden",
       });
     }
-    inspection.placeOverlay = place;
-    place(inspection.lane);
+    inspection.placeSurface = place;
+    inspection.refreshSurface?.();
     return () => {
-      if (node.contains(document.activeElement)) {
+      if (document.activeElement === node) {
         node.closest("section")?.focus({ preventScroll: true });
       }
-      if (inspection.placeOverlay === place) inspection.placeOverlay = null;
+      if (inspection.placeSurface === place) inspection.placeSurface = null;
     };
   }, [inspectionRef]);
 
   function handleKey(event) {
     const direction = KEY_ROTATIONS[event.key];
     const reset = event.key === "Home" || event.key === "Escape";
-    if (!direction && !reset) return;
-    event.preventDefault();
     const api = inspectionRef.current.api;
-    if (reset) api?.reset();
-    else api?.turn(...direction);
+    if (!api || (!direction && !reset)) return;
+    event.preventDefault();
+    if (reset) api.reset();
+    else api.turn(...direction);
   }
 
   return (
-    <div className={styles.overlay} data-inspection-section={section} ref={registerOverlay}>
-      <div className={styles.surface} data-af-cursor="grab" aria-hidden="true"
-        onPointerDown={event => inspectionRef.current.api?.down(event)}
-        onPointerMove={event => inspectionRef.current.api?.move(event)}
-        onPointerUp={event => inspectionRef.current.api?.end(event)}
-        onPointerCancel={event => inspectionRef.current.api?.end(event)}
-        onLostPointerCapture={event => inspectionRef.current.api?.end(event)} />
-      <div className={styles.controls} role="group" aria-label="Product inspection">
-        <span id="inspection-instructions" className={styles.instructions}>
-          Drag the product or use the left and right arrow keys to rotate.
-          Use the up and down arrow keys to tilt and Home to reset.
-          On touchscreens, swipe sideways to rotate or vertically to scroll.
-        </span>
-        <button type="button" aria-describedby="inspection-instructions" onKeyDown={handleKey}
-          onClick={() => inspectionRef.current.api?.turn(1, 0)}>
-          Rotate Product
-        </button>
-        <button type="button" aria-label="Reset product orientation"
-          onClick={() => inspectionRef.current.api?.reset()}>Reset</button>
-      </div>
+    <div className={styles.surface} data-inspection-section={section} data-af-cursor="grab"
+      ref={registerSurface} role="application" tabIndex={0}
+      aria-label="3D product inspection" aria-describedby="inspection-instructions"
+      onKeyDown={handleKey}
+      onPointerDown={event => inspectionRef.current.api?.down(event)}>
+      <span id="inspection-instructions" className={styles.instructions}>
+        Use the left and right arrow keys to rotate, and the up and down arrow keys to tilt.
+        Press Home or Escape to reset. Press Tab to continue.
+        Drag with a mouse or swipe sideways on a touchscreen to rotate. Swipe vertically to scroll.
+      </span>
     </div>
   );
 }

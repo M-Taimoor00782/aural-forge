@@ -114,7 +114,6 @@ export default function ScrollChoreographyController({
           };
         }
         inspection.lane = lane;
-        inspection.placeOverlay?.(lane);
       }
       laneSection = section;
       if (inspectionSection !== section) {

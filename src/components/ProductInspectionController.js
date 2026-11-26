@@ -64,6 +64,32 @@ function fitTurn(pivot, half, camera, viewport, lane) {
   return Math.max(.48, low > .99 ? 1 : low);
 }
 
+function projectSurface(pivot, half, camera, { width, height }, lane) {
+  pivot.updateWorldMatrix(true, false);
+  camera.updateWorldMatrix(true, false);
+  const point = new Vector3();
+  let left = width, top = height, right = 0, bottom = 0;
+  for (const x of [-half.x, half.x]) {
+    for (const y of [-half.y, half.y]) {
+      for (const z of [-half.z, half.z]) {
+        point.set(x, y, z).applyMatrix4(pivot.matrixWorld).project(camera);
+        const px = (point.x + 1) * width / 2;
+        const py = (1 - point.y) * height / 2;
+        left = Math.min(left, px);
+        right = Math.max(right, px);
+        top = Math.min(top, py);
+        bottom = Math.max(bottom, py);
+      }
+    }
+  }
+  const padding = 12;
+  left = Math.max(lane.left, left - padding);
+  top = Math.max(lane.top, top - padding);
+  right = Math.min(lane.right, right + padding);
+  bottom = Math.min(lane.bottom, bottom + padding);
+  return [left, top, Math.max(0, right - left), Math.max(0, bottom - top)];
+}
+
 export default function ProductInspectionController({ children, section, inspectionRef, revealBounds }) {
   const pivotRef = useRef(null);
   const contentRef = useRef(null);
@@ -118,6 +144,10 @@ export default function ProductInspectionController({ children, section, inspect
       const { surface, id } = gesture;
       gesture = null;
       rotation.dragging = false;
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", end, true);
+      window.removeEventListener("pointercancel", end, true);
+      window.removeEventListener("pointerdown", cancelForPinch, true);
       surface.dataset.afCursor = "grab";
       if (surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
       invalidate();
@@ -131,17 +161,22 @@ export default function ProductInspectionController({ children, section, inspect
       invalidate();
     }
 
+    function cancelForPinch(event) {
+      if (event.pointerType === "touch" && !event.isPrimary) end();
+    }
+
     function down(event) {
-      if (!event.isPrimary) {
-        if (event.pointerType === "touch") end();
-        return;
-      }
-      if (!available() || gesture || (event.pointerType !== "touch" && event.button !== 0)) return;
+      if (!available() || gesture || !event.isPrimary ||
+          (event.pointerType !== "touch" && event.button !== 0)) return;
       const surface = event.currentTarget;
       gesture = { id: event.pointerId, x: event.clientX, y: event.clientY,
         surface, touch: event.pointerType === "touch",
         pixelsPerTurn: Math.min(640, Math.max(220, surface.clientWidth * .9)) };
-      surface.setPointerCapture(event.pointerId);
+      if (!gesture.touch) event.preventDefault();
+      window.addEventListener("pointermove", move, { capture: true, passive: true });
+      window.addEventListener("pointerup", end, true);
+      window.addEventListener("pointercancel", end, true);
+      if (gesture.touch) window.addEventListener("pointerdown", cancelForPinch, true);
     }
 
     function move(event) {
@@ -157,6 +192,9 @@ export default function ProductInspectionController({ children, section, inspect
           return;
         }
         rotation.dragging = true;
+        if (!gesture.surface.hasPointerCapture(gesture.id)) {
+          gesture.surface.setPointerCapture(gesture.id);
+        }
         gesture.surface.dataset.afCursor = "grabbing";
       }
       gesture.x = event.clientX;
@@ -165,15 +203,20 @@ export default function ProductInspectionController({ children, section, inspect
     }
 
     const api = {
-      down, move, end,
+      down,
       turn: (yaw, pitch) => steer(yaw * Math.PI / 6, pitch * .06),
       reset() { end(); reset(rotation); invalidate(); },
     };
     inspection.api = api;
+    inspection.refreshSurface = invalidate;
+    invalidate();
     window.addEventListener("blur", end);
 
     return () => {
-      if (inspection.api === api) inspection.api = null;
+      if (inspection.api === api) {
+        inspection.api = null;
+        inspection.refreshSurface = null;
+      }
       window.removeEventListener("blur", end);
       end();
       reset(rotation);
@@ -191,10 +234,10 @@ export default function ProductInspectionController({ children, section, inspect
       rotation.scale = 1;
       rotation.engaged = false;
     }
+    const half = inspection.section === "acoustic-reveal" && revealHalfRef.current
+      ? revealHalfRef.current : halfRef.current;
     if (rotation.engaged && rotation.lane !== inspection.lane) {
       rotation.lane = inspection.lane;
-      const half = inspection.section === "acoustic-reveal" && revealHalfRef.current
-        ? revealHalfRef.current : halfRef.current;
       rotation.fitScale = fitTurn(pivot, half, camera, size, inspection.lane);
     }
     const alpha = reduced.current ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
@@ -209,6 +252,9 @@ export default function ProductInspectionController({ children, section, inspect
     if (!rotation.engaged && rotation.yaw === rotation.targetYaw) rotation.yaw = rotation.targetYaw = 0;
     pivot.rotation.set(rotation.pitch, rotation.yaw, 0, "YXZ");
     pivot.scale.setScalar(rotation.scale);
+    if (section && inspection.section === section && inspection.lane && half && !rotation.dragging) {
+      inspection.placeSurface?.(projectSurface(pivot, half, camera, size, inspection.lane));
+    }
   });
 
   return (
