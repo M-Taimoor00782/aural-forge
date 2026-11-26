@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 
 import {
@@ -31,16 +31,25 @@ export default function ProductFamilyTransitionController({
   const readyFamilyIdRef = useRef(readyFamilyId);
   const callbacksRef = useRef(null);
 
-  readyFamilyIdRef.current = readyFamilyId;
-
-  callbacksRef.current = {
+  useLayoutEffect(() => {
+    readyFamilyIdRef.current = readyFamilyId;
+    callbacksRef.current = {
+      onPhaseChange,
+      onReleaseScrollOwnership,
+      onExitProgress,
+      onSwapScene,
+      onEnterProgress,
+      onComplete,
+    };
+  }, [
+    readyFamilyId,
     onPhaseChange,
     onReleaseScrollOwnership,
     onExitProgress,
     onSwapScene,
     onEnterProgress,
     onComplete,
-  };
+  ]);
 
   useEffect(() => {
     if (

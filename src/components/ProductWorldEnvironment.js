@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -404,6 +404,10 @@ function StarLayer({
   );
 }
 
+function getStarUniforms(layers) {
+  return layers.map(layer => layer?.children[0]?.material.uniforms).filter(Boolean);
+}
+
 function ShootingStar({
   meteorRef,
   tailRef,
@@ -586,20 +590,24 @@ export default function ProductWorldEnvironment({
   });
 
   useEffect(() => {
-    uniforms.stars.uPixelRatio.value =
-      Math.min(gl.getPixelRatio(), 1.8);
+    const pixelRatio = Math.min(gl.getPixelRatio(), 1.8);
+    for (const stars of getStarUniforms(starRefs.current)) {
+      stars.uPixelRatio.value = pixelRatio;
+    }
 
     invalidate();
   }, [
     gl,
     viewport.width,
     viewport.height,
-    uniforms,
     invalidate,
   ]);
 
   // Preserve family and variant-driven palettes.
   useEffect(() => {
+    const sky = skyRef.current?.material.uniforms;
+    if (!sky) return;
+    const stars = getStarUniforms(starRefs.current);
     const family = getProductFamily(familyId);
 
     const palette = getProductFamilyWorld(
@@ -616,21 +624,19 @@ export default function ProductWorldEnvironment({
 
     const colors = [
       [
-        uniforms.sky.uBackground.value,
+        sky.uBackground.value,
         palette.background,
       ],
       [
-        uniforms.sky.uSurface.value,
+        sky.uSurface.value,
         palette.surface,
       ],
       [
-        uniforms.sky.uAccent.value,
+        sky.uAccent.value,
         palette.accent,
       ],
-      [
-        uniforms.stars.uColor.value,
-        palette.text,
-      ],
+      ...Array.from(new Set(stars.map(layer => layer.uColor.value)),
+        color => [color, palette.text]),
     ];
 
     const starOpacity =
@@ -645,8 +651,9 @@ export default function ProductWorldEnvironment({
         target.copy(new Color(hex));
       });
 
-      uniforms.stars.uOpacity.value =
-        starOpacity;
+      for (const layer of stars) {
+        layer.uOpacity.value = starOpacity;
+      }
 
       initializedRef.current = true;
       invalidate();
@@ -674,7 +681,7 @@ export default function ProductWorldEnvironment({
     });
 
     timeline.to(
-      uniforms.stars.uOpacity,
+      stars.map(layer => layer.uOpacity),
       {
         value: starOpacity,
         duration: 1.1,
@@ -687,7 +694,6 @@ export default function ProductWorldEnvironment({
   }, [
     familyId,
     variantId,
-    uniforms,
     invalidate,
   ]);
 
@@ -703,6 +709,7 @@ export default function ProductWorldEnvironment({
 
     if (reducedMotion) return;
 
+    const twinkles = getStarUniforms(starRefs.current).map(layer => layer.uTwinkle);
     const random = createRandom(23170);
 
     let timer = null;
@@ -726,12 +733,12 @@ export default function ProductWorldEnvironment({
         });
 
         animation
-          .to(uniforms.stars.uTwinkle, {
+          .to(twinkles, {
             value: 1,
             duration: 1.1,
             ease: "sine.inOut",
           })
-          .to(uniforms.stars.uTwinkle, {
+          .to(twinkles, {
             value: 0,
             duration: 1.5,
             ease: "sine.inOut",
@@ -750,10 +757,10 @@ export default function ProductWorldEnvironment({
 
       animation?.kill();
 
-      uniforms.stars.uTwinkle.value = 0;
+      for (const twinkle of twinkles) twinkle.value = 0;
       invalidate();
     };
-  }, [familyId, uniforms, invalidate]);
+  }, [familyId, invalidate]);
 
   // Shooting stars and the five-second hold.
   useEffect(() => {
@@ -781,6 +788,10 @@ export default function ProductWorldEnvironment({
       return;
     }
 
+    const opacityUniforms = [tail, head].map(mesh => mesh.material.uniforms.uOpacity);
+    const hideMeteor = () => {
+      for (const opacity of opacityUniforms) opacity.value = 0;
+    };
     const random = createRandom(93217);
 
     let disposed = false;
@@ -978,7 +989,7 @@ export default function ProductWorldEnvironment({
         1
       );
 
-      uniforms.meteor.uOpacity.value = 0;
+      hideMeteor();
 
       meteor.visible = true;
       invalidate();
@@ -996,7 +1007,7 @@ export default function ProductWorldEnvironment({
         onComplete: () => {
           meteorTimeline = null;
 
-          uniforms.meteor.uOpacity.value = 0;
+          hideMeteor();
           meteor.visible = false;
 
           if (type === "hold") {
@@ -1041,7 +1052,7 @@ export default function ProductWorldEnvironment({
       );
 
       meteorTimeline.to(
-        uniforms.meteor.uOpacity,
+        opacityUniforms,
         {
           value: 1,
           duration: 0.12,
@@ -1052,7 +1063,7 @@ export default function ProductWorldEnvironment({
 
       // Hold visibility through most of the fall.
       meteorTimeline.to(
-        uniforms.meteor.uOpacity,
+        opacityUniforms,
         {
           value: 0,
           duration: 0.44,
@@ -1202,7 +1213,7 @@ export default function ProductWorldEnvironment({
       gsap.killTweensOf(tensionLayer.position);
 
       tensionLayer.position.set(0, 0, 0);
-      uniforms.meteor.uOpacity.value = 0;
+      hideMeteor();
 
       meteor.visible = false;
 
@@ -1238,7 +1249,6 @@ export default function ProductWorldEnvironment({
     camera,
     viewport.width,
     viewport.height,
-    uniforms,
     invalidate,
   ]);
 
