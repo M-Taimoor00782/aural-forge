@@ -42,9 +42,37 @@
 }
 .wide { grid-column: 1 / -1; }
 .submit { margin-top: 20px; }
-.submit p { margin-bottom: 12px; color: var(--af-text-secondary); font: 400 13px/1.65 var(--af-font-body); }
-.submit .error { margin: 14px 0 0; color: var(--af-text-primary); font-weight: 650; }
 .place { width: 100%; justify-content: center; }
+
+.paymentDialog {
+  width: min(100% - 32px, 510px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: clamp(20px, 5vw, 34px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--af-border-strong);
+  border-radius: 18px;
+  background: var(--af-surface-elevated);
+  color: var(--af-text-primary);
+  box-shadow: var(--af-header-shadow);
+}
+.paymentDialog::backdrop { background: rgb(13 13 13 / 65%); }
+:global(html):has(.paymentDialog[open]) { overflow: hidden; }
+
+.paymentDialog h2 {
+  margin: 0 0 10px;
+  font: 600 clamp(25px, 5vw, 35px)/1.13 var(--af-font-heading);
+  letter-spacing: -.03em;
+}
+.paymentDialog p { color: var(--af-text-secondary); font: 400 14px/1.65 var(--af-font-body); }
+.paymentDialog .error { margin-top: 14px; color: var(--af-text-primary); font-weight: 650; }
+.dialogActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+/* Native dialogs sit above the site's custom cursor layer. */
+:global(html[data-af-single-cursor="on"]) .paymentDialog[open] { cursor: default !important; }
+:global(html[data-af-single-cursor="on"]) .paymentDialog[open] button { cursor: pointer !important; }
+
 .empty, .receipt {
   padding: clamp(18px, 4vw, 38px);
   border: 1px solid var(--af-border);
@@ -63,4 +91,8 @@
 
 @media (max-width: 500px) {
   .fieldGrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 460px) {
+  .dialogActions { display: grid; grid-template-columns: 1fr; }
 }

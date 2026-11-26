@@ -441,6 +441,20 @@ canvas {
     visibility 0s linear 720ms;
 }
 
+.af-cinematic-layer[data-stage-ready="false"] canvas { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .af-cinematic-layer[data-stage-ready="true"] canvas {
+    animation: af-stage-arrival 175ms linear;
+  }
+}
+
+/* The still clears before the live silhouette is revealed. */
+@keyframes af-stage-arrival {
+  0%, 46% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .af-cinematic-layer,
   .af-cinematic-layer.is-exiting {

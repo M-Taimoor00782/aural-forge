@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -24,6 +24,7 @@ gsap.registerPlugin(ScrollTrigger);
 export default function ProductParallaxBanner({ familyId }) {
   const section = useRef(null);
   const frame = useRef(null);
+  const [artReady, setArtReady] = useState(false);
   const [label, title, description] = BANNER_CONTENT[familyId] ?? BANNER_CONTENT.headphones;
 
   useLayoutEffect(() => {
@@ -33,9 +34,11 @@ export default function ProductParallaxBanner({ familyId }) {
       const element = section.current;
       const surface = frame.current;
       const stage = surface.parentElement;
+      const detail = element.previousElementSibling?.querySelector("#detail");
+      const portrait = matchMedia("(max-aspect-ratio: 3/4)");
       const travel = () => element.getBoundingClientRect().height - stage.getBoundingClientRect().height;
       const blend = () => gsap.utils.clamp(56, 136, stage.offsetHeight * .16);
-      let pinStart, pinEnd, expansion, transition;
+      let pinStart, pinEnd, expansion, transition, copyStart, copyEnd;
 
       function draw(scroll) {
         const progress = gsap.utils.clamp(0, 1, (scroll - pinStart) / expansion);
@@ -46,6 +49,8 @@ export default function ProductParallaxBanner({ familyId }) {
           : stickyOffset(Math.max(0, scroll - pinEnd), transition);
         surface.style.setProperty("--banner-open", open);
         surface.style.setProperty("--banner-offset", `${offset}px`);
+        const exit = gsap.utils.clamp(0, 1, (scroll - copyStart) / (copyEnd - copyStart));
+        detail?.style.setProperty("--detail-exit", exit * exit * (3 - 2 * exit));
       }
 
       ScrollTrigger.create({
@@ -58,6 +63,9 @@ export default function ProductParallaxBanner({ familyId }) {
           pinEnd = pinStart + travel();
           expansion = travel() * .78;
           transition = blend();
+          const height = self.end - self.start - travel() - transition;
+          copyStart = pinStart - height * (portrait.matches ? .48 : .62);
+          copyEnd = pinStart - height * (portrait.matches ? .10 : .22);
           draw(scroll);
         },
         onUpdate: self => draw(self.scroll()),
@@ -66,6 +74,7 @@ export default function ProductParallaxBanner({ familyId }) {
       return () => {
         surface.style.removeProperty("--banner-open");
         surface.style.removeProperty("--banner-offset");
+        detail?.style.removeProperty("--detail-exit");
       };
     });
 
@@ -75,7 +84,7 @@ export default function ProductParallaxBanner({ familyId }) {
   return (
     <section ref={section} id="product-parallax-banner" className={styles.section} aria-labelledby="banner-heading">
       <div className={styles.stage}>
-        <div ref={frame} className={styles.frame} data-banner-frame>
+        <div ref={frame} className={styles.frame} data-banner-frame data-art-ready={artReady}>
           <picture className={styles.art}>
             <source
               media="(max-width: 850px), (max-aspect-ratio: 3/4)"
@@ -87,6 +96,10 @@ export default function ProductParallaxBanner({ familyId }) {
               alt="Signature Red headphones, Ice Silver wireless earbuds, and a Burnished Copper smartwatch"
               fill
               unoptimized
+              loading="eager"
+              fetchPriority="low"
+              onLoad={() => setArtReady(true)}
+              onError={() => setArtReady(true)}
             />
           </picture>
           <div className={styles.copy}>

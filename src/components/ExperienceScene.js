@@ -15,7 +15,7 @@ import {
   isProductFamilyReady,
 } from "@/config/productFamilies";
 
-import { headphoneMechanism, measureMechanism } from "@/lib/animateProductReveal";
+import { headphoneMechanism, measureMechanism, phase } from "@/lib/animateProductReveal";
 import { useProductVariantMaterials } from "@/lib/useProductVariantMaterials";
 import { measureHeadphoneBounds } from "@/lib/responsiveComposition";
 
@@ -27,6 +27,7 @@ const EARBUDS_FAMILY_ID = "earbuds";
 
 function HeadphoneProductExperience(props) {
   const { scene: source } = useGLTF(props.family.asset.url);
+  const revealFill = useRef(null);
   const invalidate = useThree(state => state.invalidate);
   const rig = useMemo(() => {
     const scene = source.clone(true);
@@ -36,7 +37,11 @@ function HeadphoneProductExperience(props) {
     presentation.add(scene);
     const sample = headphoneMechanism(scene, presentation);
     return {
-      scene: presentation, bounds, sample,
+      scene: presentation, bounds,
+      sample(progress, display, compact) {
+        sample(progress, display, compact);
+        if (revealFill.current) revealFill.current.intensity = .6 * phase(progress, .18, .8);
+      },
       revealRotation: [.035, -.65, -.04],
       expandedBounds: measureMechanism(presentation, sample),
       compactRevealBounds: measureMechanism(presentation, (progress, display) => sample(progress, display, true)),
@@ -44,7 +49,12 @@ function HeadphoneProductExperience(props) {
   }, [source]);
   useProductVariantMaterials({ scene: rig.scene, productRootRef: props.productRootRef,
     variantId: props.variantId, invalidate });
-  return <ProductStage {...props} rig={rig} />;
+  return (
+    <>
+      <directionalLight ref={revealFill} position={[-3, 1, 6]} intensity={0} />
+      <ProductStage {...props} rig={rig} />
+    </>
+  );
 }
 
 function HeadphoneEnvironment() {

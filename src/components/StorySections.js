@@ -175,6 +175,7 @@ function StoryPanel({
 export default function StorySections({
   familyId = DEFAULT_PRODUCT_FAMILY_ID,
   variantId,
+  productReady,
   inspectionSection,
   inspectionRef,
 }) {
@@ -200,6 +201,7 @@ export default function StorySections({
         family={family}
         content={story.hero}
         variant={activeVariant}
+        productReady={productReady}
         price={formatPrice(activeVariant)}
         inspection={inspection("hero")}
       />
@@ -210,12 +212,14 @@ export default function StorySections({
         id="performance"
         className={styles.section}
         aria-labelledby="performance-heading"
+        tabIndex={-1}
       >
         <StoryPanel
           id="performance"
           content={story.performance}
           position="right"
         />
+        {inspection("performance")}
       </section>
 
       {/* 03 — DETAIL */}
@@ -225,12 +229,14 @@ export default function StorySections({
           id="detail"
           className={`${styles.section} ${styles.pinnedDetail}`}
           aria-labelledby="detail-heading"
+          tabIndex={-1}
         >
           <StoryPanel
             id="detail"
             content={story.detail}
             position="right"
           />
+          {inspection("detail")}
         </section>
       </div>
 
@@ -245,11 +251,13 @@ export default function StorySections({
         id="acoustic-reveal"
         className={styles.reveal}
         aria-labelledby="reveal-heading"
+        tabIndex={-1}
       >
         <div className={styles.revealFrame} data-reveal-frame>
           <div className={styles.modelSlot} data-reveal-slot aria-hidden="true" />
           <StoryPanel id="acoustic-reveal" content={story.reveal} position="right" />
         </div>
+        {inspection("acoustic-reveal")}
       </section>
 
       {/* 05 — CONFIGURATOR */}

@@ -37,7 +37,8 @@ export default function ProductStage({
   return (
     <group ref={productRootRef} name="FamilyHandoff">
       <group ref={narrativeRoot} name="NarrativePose">
-        <ProductInspectionController section={inspectionSection} inspectionRef={inspectionRef}>
+        <ProductInspectionController section={inspectionSection} inspectionRef={inspectionRef}
+          revealBounds={rig.expandedBounds}>
           <primitive object={rig.scene} dispose={null} />
         </ProductInspectionController>
       </group>

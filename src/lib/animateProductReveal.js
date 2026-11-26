@@ -71,9 +71,9 @@ export function earbudsMechanism({ hinge, firstEarbud, secondEarbud }, presentat
       const lift = phase(progress, .38 + bud.delay, .72 + bud.delay);
       const spread = phase(progress, .61 + bud.delay, .92 + bud.delay);
       bud.mesh.position.lerpVectors(bud.dock, bud.original, displayLift);
-      bud.mesh.position.y += .60 * lift + .08 * spread;
-      bud.mesh.position.x += bud.side * .26 * spread;
-      bud.mesh.position.z += .08 * spread;
+      bud.mesh.position.y += .60 * lift + .16 * spread;
+      bud.mesh.position.x += bud.side * .41 * spread;
+      bud.mesh.position.z += .14 * spread;
       bud.mesh.quaternion.slerpQuaternions(bud.seated, bud.originalRotation, displayLift);
       bud.mesh.quaternion.slerp(bud.turned, spread);
     }

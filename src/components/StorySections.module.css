@@ -368,6 +368,11 @@
   top: 0;
 }
 
+.pinnedDetail > .content {
+  opacity: calc(1 - var(--detail-exit, 0));
+  transform: translateY(calc(-18px * var(--detail-exit, 0)));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .detailTrack { --detail-overlap: 0px; }
   .pinnedDetail { position: relative; }

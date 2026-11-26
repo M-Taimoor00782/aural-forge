@@ -64,10 +64,11 @@ function fitTurn(pivot, half, camera, viewport, lane) {
   return Math.max(.48, low > .99 ? 1 : low);
 }
 
-export default function ProductInspectionController({ children, section, inspectionRef }) {
+export default function ProductInspectionController({ children, section, inspectionRef, revealBounds }) {
   const pivotRef = useRef(null);
   const contentRef = useRef(null);
   const halfRef = useRef(null);
+  const revealHalfRef = useRef(null);
   const reduced = useRef(false);
   const motion = useRef({
     yaw: 0, pitch: 0, scale: 1, targetYaw: 0, targetPitch: 0,
@@ -85,8 +86,17 @@ export default function ProductInspectionController({ children, section, inspect
     pivot.position.add(center);
     content.position.sub(center);
     halfRef.current = bounds.getSize(new Vector3()).multiplyScalar(.5);
+    if (revealBounds) {
+      const lower = new Vector3().fromArray(revealBounds.min).sub(center);
+      const upper = new Vector3().fromArray(revealBounds.max).sub(center);
+      revealHalfRef.current = new Vector3(
+        Math.max(Math.abs(lower.x), Math.abs(upper.x)),
+        Math.max(Math.abs(lower.y), Math.abs(upper.y)),
+        Math.max(Math.abs(lower.z), Math.abs(upper.z)),
+      );
+    }
     invalidate();
-  }, [invalidate]);
+  }, [invalidate, revealBounds]);
 
   useEffect(() => {
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
@@ -96,19 +106,20 @@ export default function ProductInspectionController({ children, section, inspect
     return () => preference.removeEventListener("change", sync);
   }, [invalidate]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const inspection = inspectionRef.current;
-    const surface = inspection.surface;
     const rotation = motion.current;
-    if (!section || !surface) return;
+    if (!section) return;
 
     let gesture;
     const available = () => inspection.section === section;
     function end(event) {
       if (!gesture || (event?.pointerId !== undefined && event.pointerId !== gesture.id)) return;
+      const { surface, id } = gesture;
       gesture = null;
       rotation.dragging = false;
       surface.dataset.afCursor = "grab";
+      if (surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
       invalidate();
     }
 
@@ -121,14 +132,20 @@ export default function ProductInspectionController({ children, section, inspect
     }
 
     function down(event) {
-      if (!available() || gesture || !event.isPrimary || event.button !== 0) return;
+      if (!event.isPrimary) {
+        if (event.pointerType === "touch") end();
+        return;
+      }
+      if (!available() || gesture || (event.pointerType !== "touch" && event.button !== 0)) return;
+      const surface = event.currentTarget;
       gesture = { id: event.pointerId, x: event.clientX, y: event.clientY,
-        touch: event.pointerType === "touch", rejected: false,
+        surface, touch: event.pointerType === "touch",
         pixelsPerTurn: Math.min(640, Math.max(220, surface.clientWidth * .9)) };
+      surface.setPointerCapture(event.pointerId);
     }
 
     function move(event) {
-      if (!gesture || gesture.id !== event.pointerId || gesture.rejected) return;
+      if (!gesture || gesture.id !== event.pointerId) return;
       if (!available()) { end(event); return; }
       if (!gesture.touch && !(event.buttons & 1)) { end(event); return; }
       const dx = event.clientX - gesture.x;
@@ -136,11 +153,11 @@ export default function ProductInspectionController({ children, section, inspect
       if (!rotation.dragging) {
         if (Math.hypot(dx, dy) < (gesture.touch ? 9 : 4)) return;
         if (gesture.touch && Math.abs(dy) >= Math.abs(dx)) {
-          gesture.rejected = true;
+          end(event);
           return;
         }
         rotation.dragging = true;
-        surface.dataset.afCursor = "grabbing";
+        gesture.surface.dataset.afCursor = "grabbing";
       }
       gesture.x = event.clientX;
       gesture.y = event.clientY;
@@ -148,22 +165,15 @@ export default function ProductInspectionController({ children, section, inspect
     }
 
     const api = {
+      down, move, end,
       turn: (yaw, pitch) => steer(yaw * Math.PI / 6, pitch * .06),
       reset() { end(); reset(rotation); invalidate(); },
     };
     inspection.api = api;
-    surface.addEventListener("pointerdown", down);
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", end);
     window.addEventListener("blur", end);
 
     return () => {
       if (inspection.api === api) inspection.api = null;
-      surface.removeEventListener("pointerdown", down);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", end);
       window.removeEventListener("blur", end);
       end();
       reset(rotation);
@@ -183,7 +193,9 @@ export default function ProductInspectionController({ children, section, inspect
     }
     if (rotation.engaged && rotation.lane !== inspection.lane) {
       rotation.lane = inspection.lane;
-      rotation.fitScale = fitTurn(pivot, halfRef.current, camera, size, inspection.lane);
+      const half = inspection.section === "acoustic-reveal" && revealHalfRef.current
+        ? revealHalfRef.current : halfRef.current;
+      rotation.fitScale = fitTurn(pivot, half, camera, size, inspection.lane);
     }
     const alpha = reduced.current ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
     function approach(value, target) {

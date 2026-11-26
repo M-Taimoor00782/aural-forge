@@ -45,13 +45,6 @@ function subscribeToFamilyLink(listener) {
   return () => window.removeEventListener("popstate", listener);
 }
 
-function getFamilyFromLink() {
-  const id = new URLSearchParams(window.location.search).get("family");
-  return isProductFamilyReady(id) ? id : DEFAULT_PRODUCT_FAMILY_ID;
-}
-
-const getInitialFamily = () => DEFAULT_PRODUCT_FAMILY_ID;
-
 function navigateToHero() {
   const hero = document.getElementById("hero");
 
@@ -276,7 +269,7 @@ function SiteClosingSections({
   );
 }
 
-export default function ExperienceRuntime() {
+export default function ExperienceRuntime({ initialFamilyId = DEFAULT_PRODUCT_FAMILY_ID }) {
   /*
    * af-banner-emergence-dom-v1
    *
@@ -404,6 +397,11 @@ export default function ExperienceRuntime() {
     };
   }, []);
 
+  const getFamilyFromLink = useCallback(() => {
+    const id = new URLSearchParams(window.location.search).getAll("family").at(-1);
+    return isProductFamilyReady(id) ? id : initialFamilyId;
+  }, [initialFamilyId]);
+  const getInitialFamily = useCallback(() => initialFamilyId, [initialFamilyId]);
   const linkedFamilyId = useSyncExternalStore(subscribeToFamilyLink, getFamilyFromLink, getInitialFamily);
   const [chosenFamilyId, setActiveFamilyId] = useState(null);
   const activeFamilyId = chosenFamilyId ?? linkedFamilyId;
@@ -776,6 +774,7 @@ export default function ExperienceRuntime() {
           shoppingActive ? "is-exiting" : "",
         ].filter(Boolean).join(" ")}
         data-family={activeFamilyId}
+        data-stage-ready={readyFamilyId === activeFamilyId}
         data-product-state={activeProductState}
         aria-hidden={shoppingActive}
       >
@@ -794,6 +793,7 @@ export default function ExperienceRuntime() {
       <StorySections
         familyId={activeFamilyId}
         variantId={selectedVariantId}
+        productReady={readyFamilyId === activeFamilyId}
         inspectionSection={availableInspection}
         inspectionRef={inspectionRef}
       />

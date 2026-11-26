@@ -24,7 +24,7 @@ export default function ExperienceCanvas({
         position: "fixed",
         inset: 0,
         width: "100vw",
-        height: "100vh",
+        height: "100svh",
         zIndex: 0,
       }}
       camera={{

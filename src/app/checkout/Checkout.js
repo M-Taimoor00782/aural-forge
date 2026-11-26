@@ -46,31 +46,65 @@ export default function Checkout() {
   const { lines, ready } = useCart();
   const router = useRouter();
   const submitLock = useRef(false);
+  const reviewedCart = useRef(null);
+  const dialogRef = useRef(null);
+  const proceedRef = useRef(null);
+  const headingRef = useRef(null);
+  const backRef = useRef(null);
+  const completeRef = useRef(null);
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
 
   function submit(event) {
     event.preventDefault();
-    if (submitLock.current) return;
+    const dialog = dialogRef.current;
+    if (!ready || !lines.length || submitLock.current || dialog.open) return;
     const form = event.currentTarget;
     for (const control of form.elements) {
       if (control.required && !control.value.trim()) control.setCustomValidity("Please fill in this field.");
     }
     if (!form.reportValidity()) return;
 
-    submitLock.current = true;
+    reviewedCart.current = lines;
     setError("");
-    setPlacing(true);
+    dialog.showModal();
+    backRef.current.focus();
+  }
+
+  function closeDialog() {
+    dialogRef.current.close();
+    reviewedCart.current = null;
+    (proceedRef.current ?? headingRef.current).focus();
+  }
+
+  function keepDialogFocus(event) {
+    if (event.key !== "Tab") return;
+    const from = event.shiftKey ? backRef.current : completeRef.current;
+    if (event.target !== from) return;
+    event.preventDefault();
+    const to = event.shiftKey ? completeRef.current : backRef.current;
+    to.focus();
+  }
+
+  function completeOrder() {
+    if (!dialogRef.current.open || submitLock.current) return;
+    if (!lines.length || lines !== reviewedCart.current) {
+      setError("Your cart changed. Go back to checkout to review your order summary.");
+      return;
+    }
+
+    submitLock.current = true;
     let number;
     try {
       number = placeOrder(lines);
     } catch {
       submitLock.current = false;
-      setPlacing(false);
       setError("Your order could not be saved in this browser. Check that browser storage is available and try again.");
       return;
     }
 
+    dialogRef.current.close();
+    setPlacing(true);
     router.replace(`/order-confirmation?order=${number}`);
   }
 
@@ -79,7 +113,7 @@ export default function Checkout() {
       <PremiumHeader />
       <main className={`af-container ${styles.main}`} aria-labelledby="checkout-heading">
         <Link href="/cart" className={styles.back}>Back to Cart</Link>
-        <h1 id="checkout-heading">Checkout</h1>
+        <h1 id="checkout-heading" ref={headingRef} tabIndex={-1}>Checkout</h1>
         {!ready || placing ? <p role="status">{placing ? "Saving your order…" : "Loading cart…"}</p>
           : lines.length === 0 ? (
             <div className={styles.empty}><p>Your cart is empty.</p>
@@ -92,15 +126,26 @@ export default function Checkout() {
               </div>
               <OrderSummary lines={lines} {...getCartTotals(lines)}>
                 <div className={styles.submit}>
-                  <p id="checkout-disclosure">This checkout is a portfolio preview. No payment will be collected and no physical order will be fulfilled.</p>
-                  <button className={`af-button ${styles.place}`} type="submit"
-                    aria-describedby="checkout-disclosure">Place Order</button>
-                  {error && <p className={styles.error} role="alert">{error}</p>}
+                  <button className={`af-button ${styles.place}`} type="submit" ref={proceedRef}
+                    aria-haspopup="dialog">Proceed to Payment</button>
                 </div>
               </OrderSummary>
             </form>
           )}
       </main>
+      <dialog ref={dialogRef} className={styles.paymentDialog} aria-modal="true"
+        aria-labelledby="payment-dialog-title" aria-describedby="payment-dialog-disclosure"
+        onCancel={event => { event.preventDefault(); closeDialog(); }} onKeyDown={keepDialogFocus}>
+        <h2 id="payment-dialog-title">Confirm your order</h2>
+        <p id="payment-dialog-disclosure">This is a demonstration checkout. No payment will be collected, and no physical order will be shipped.</p>
+        {error && <p className={styles.error} role="alert">{error}</p>}
+        <div className={styles.dialogActions}>
+          <button type="button" ref={backRef} className="af-button af-button--outline"
+            onClick={closeDialog}>Back to Checkout</button>
+          <button type="button" ref={completeRef} className="af-button"
+            onClick={completeOrder}>Complete Preview Order</button>
+        </div>
+      </dialog>
       <ExperienceCursor />
     </>
   );

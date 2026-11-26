@@ -32,10 +32,6 @@ export default function ProductInspectionControls({ section, inspectionRef }) {
     };
   }, [inspectionRef]);
 
-  const registerSurface = useCallback(node => {
-    inspectionRef.current.surface = node;
-  }, [inspectionRef]);
-
   function handleKey(event) {
     const direction = KEY_ROTATIONS[event.key];
     const reset = event.key === "Home" || event.key === "Escape";
@@ -49,7 +45,11 @@ export default function ProductInspectionControls({ section, inspectionRef }) {
   return (
     <div className={styles.overlay} data-inspection-section={section} ref={registerOverlay}>
       <div className={styles.surface} data-af-cursor="grab" aria-hidden="true"
-        ref={registerSurface} />
+        onPointerDown={event => inspectionRef.current.api?.down(event)}
+        onPointerMove={event => inspectionRef.current.api?.move(event)}
+        onPointerUp={event => inspectionRef.current.api?.end(event)}
+        onPointerCancel={event => inspectionRef.current.api?.end(event)}
+        onLostPointerCapture={event => inspectionRef.current.api?.end(event)} />
       <div className={styles.controls} role="group" aria-label="Product inspection">
         <span id="inspection-instructions" className={styles.instructions}>
           Drag the product or use the left and right arrow keys to rotate.

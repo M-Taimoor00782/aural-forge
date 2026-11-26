@@ -1,7 +1,8 @@
 import Image from "next/image";
+import { getProductFinishImage } from "@/config/productFamilies";
 import styles from "./ProductHero.module.css";
 
-export default function ProductHero({ family, content, variant, price, inspection }) {
+export default function ProductHero({ family, content, variant, price, inspection, productReady }) {
   const finish = variant?.name ?? variant?.label;
 
   return (
@@ -21,6 +22,20 @@ export default function ProductHero({ family, content, variant, price, inspectio
           className={styles.photograph}
         />
       </picture>
+
+      {variant && <Image
+        src={getProductFinishImage(family.id, variant.id)}
+        alt=""
+        width={920}
+        height={920}
+        unoptimized
+        loading="eager"
+        fetchPriority="high"
+        className={styles.still}
+        data-hero-still
+        data-family={family.id}
+        data-ready={productReady}
+      />}
 
       <div className={styles.copy} data-hero-copy>
         <p className={styles.eyebrow}>

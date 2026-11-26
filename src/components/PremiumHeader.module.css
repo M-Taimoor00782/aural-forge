@@ -19,7 +19,7 @@
   color: var(--af-text-primary);
   box-shadow: var(--af-header-shadow);
   pointer-events: auto;
-  transition: background-color var(--af-transition-theme), box-shadow var(--af-transition-theme);
+  transition: box-shadow var(--af-transition-theme);
 }
 
 .brand {

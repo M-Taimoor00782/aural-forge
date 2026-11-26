@@ -77,29 +77,42 @@ export default function ScrollChoreographyController({
 
     function updateInspection(y) {
       const { width, height } = viewport;
-      const index = y <= Math.max(1, centers[0] + height * .075) ? 0
-        : Math.abs(y - centers[4]) <= height * .085 ? 4
-          : Math.abs(y - centers[5]) <= height * .09 ? 5 : null;
-      const section = index === null ? null : ids[index];
-      inspection.exclusive = y >= bannerStart && y <= end;
+      const reduced = preference.matches;
+      const duringReveal = y >= top && y <= (reduced ? top + height * .08 : end);
+      const progress = fraction(y, top, end);
+      const heldReveal = duringReveal && (reduced || progress <= .08 || progress >= .94);
+      const stable = [1, 2, 4, 5].find(i => Math.abs(y - centers[i]) <= height * .09 &&
+        (i !== 2 || y < bannerStart + height * .10));
+      const index = y <= Math.max(1, centers[0] + height * .075) ? 0 : heldReveal ? 3 : stable;
+      const section = index === undefined ? null : ids[index];
+      inspection.exclusive = y >= bannerStart && y <= end && !heldReveal && section !== "detail";
       inspection.section = section;
 
       if (section && laneSection !== section) {
         const hero = index === 0;
-        const copy = hero ? sections[0].querySelector("[data-hero-copy]") : sections[index].firstElementChild;
-        const rect = copy.getBoundingClientRect();
-        const relativeBottom = rect.bottom + y - centers[index];
         const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
         const edge = Math.max(12, width * .04);
-        const lane = {
-          left: !compact && index !== 4 ? rect.right + 12 : edge,
-          right: !compact && index === 4 ? rect.left - 12 : width - edge,
-          top: compact ? Math.max(header + 10, relativeBottom + 10) : header + 12,
-          bottom: hero
-            ? (compact ? sections[0].querySelector("[data-hero-action]") : sections[0].lastElementChild)
-              .getBoundingClientRect().top + y - centers[0] - 12
-            : height - 22,
-        };
+        let lane;
+        if (index === 3) {
+          const rect = slot.getBoundingClientRect();
+          const frameY = frame.getBoundingClientRect().top;
+          lane = { left: rect.left, right: rect.right,
+            top: Math.max(header + 10, rect.top - frameY), bottom: rect.bottom - frameY };
+        } else {
+          const copy = hero ? sections[0].querySelector("[data-hero-copy]") : sections[index].firstElementChild;
+          const rect = copy.getBoundingClientRect();
+          const copyOnLeft = hero || index === 5;
+          const relativeBottom = rect.bottom + y - centers[index] + (hero ? 0 : height * .09);
+          lane = {
+            left: !compact && copyOnLeft ? rect.right + 12 : edge,
+            right: !compact && !copyOnLeft ? rect.left - 12 : width - edge,
+            top: compact ? Math.max(header + 10, relativeBottom + 10) : header + 12,
+            bottom: hero
+              ? (compact ? sections[0].querySelector("[data-hero-action]") : sections[0].lastElementChild)
+                .getBoundingClientRect().top + y - centers[0] - 12
+              : height - 22,
+          };
+        }
         inspection.lane = lane;
         inspection.placeOverlay?.(lane);
       }

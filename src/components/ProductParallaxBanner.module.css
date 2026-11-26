@@ -39,7 +39,7 @@
   grid-row: 1;
   height: 100%;
   mask-image: linear-gradient(to right, transparent, #000 12%, #000 94%, transparent);
-  transform: translateX(calc(-5vw * var(--closed))) scale(calc(1.065 - .135 * var(--closed)));
+  transform: translateX(calc(-2.8vw * var(--closed))) scale(calc(1.055 - .10 * var(--closed)));
 }
 
 .image {
@@ -53,6 +53,8 @@
   padding-inline: clamp(26px, 5vw, 84px) 0;
   transform: translateX(calc(4.5vw * var(--closed)));
 }
+
+.frame[data-art-ready="false"] .copy { opacity: 0; }
 
 .eyebrow {
   margin: 0 0 15px;
@@ -96,7 +98,7 @@
   .art {
     grid-column: 1;
     mask-image: linear-gradient(transparent, #000 13%, #000 91%, transparent);
-    transform: scale(calc(1.065 - .135 * var(--closed)));
+    transform: scale(calc(1.045 - .075 * var(--closed)));
   }
 
   .copy {

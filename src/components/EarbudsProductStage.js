@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
@@ -11,9 +11,6 @@ import ProductStage from "./ProductStage";
 import { earbudsMechanism, measureMechanism } from "@/lib/animateProductReveal";
 
 import { getProductFamilyVariant } from "@/config/productFamilies";
-
-const MODEL_URL =
-  "/models/earbuds/aural-forge-earbuds.glb";
 
 // These are glTF source node INDICES, not runtime
 // Object3D names. The indices come from the
@@ -353,7 +350,7 @@ function getCameraDistance(
 
 export default function EarbudsProductStage(props) {
   const { family, variantId } = props;
-  const gltf = useGLTF(MODEL_URL);
+  const gltf = useGLTF(family.asset.url);
   const invalidate = useThree(state => state.invalidate);
   const rig = useMemo(() => createEarbudsRig(gltf), [gltf]);
   const materialTimelineRef = useRef(null);
@@ -404,5 +401,3 @@ export default function EarbudsProductStage(props) {
 
   return <ProductStage {...props} rig={rig} />;
 }
-
-useGLTF.preload(MODEL_URL);
