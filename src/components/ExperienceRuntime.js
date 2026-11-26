@@ -241,7 +241,7 @@ function SiteClosingSections({
                   cursor: "pointer",
                 }}
               >
-                Subscribe ↗
+                Subscribe
               </button>
             </form>
 

@@ -82,7 +82,7 @@ export default function ProductFAQ({ families, activeFamilyId }) {
                       <button className={styles.disclosure} type="button" id={key}
                         aria-controls={`${key}-answer`} aria-expanded={open}
                         onClick={() => setOpenQuestion(open ? null : key)}>
-                        {question}<span className={styles.chevron} aria-hidden="true" />
+                        {question}<span className={`af-chevron ${styles.chevron}`} aria-hidden="true" />
                       </button>
                     </h3>
                     <div id={`${key}-answer`} role="region" aria-labelledby={key}

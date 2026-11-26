@@ -29,7 +29,7 @@ function FooterGroup({ id, title, mobile, children }) {
       <h3 className={styles.footerMobileHeading}>
         <button className={styles.disclosure} type="button" aria-expanded={open}
           aria-controls={id} onClick={() => setOpen(!open)}>
-          {title}<span className={styles.chevron} aria-hidden="true" />
+          {title}<span className={`af-chevron ${styles.chevron}`} aria-hidden="true" />
         </button>
       </h3>
       <div id={id} className={styles.footerPanel} inert={mobile && !open} data-open={open}>

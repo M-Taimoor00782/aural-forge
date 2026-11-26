@@ -50,7 +50,7 @@ export default function ProductHero({ family, content, variant, price, inspectio
       </div>
 
       <a href="#products" data-hero-action className={`af-button ${styles.action}`}>
-        Explore finishes <span aria-hidden="true">↗</span>
+        Explore finishes
       </a>
 
       {inspection}
@@ -65,8 +65,8 @@ export default function ProductHero({ family, content, variant, price, inspectio
           {price && <strong>{price}</strong>}
         </div>
         <a href="#performance" className={styles.next}>
-          <span>{family.id === "product-03" ? "Explore the dial" : "The listening experience"}</span>
-          <span aria-hidden="true">↓</span>
+          <span className={styles.nextLabel}>{family.id === "product-03" ? "Explore the dial" : "The listening experience"}</span>
+          <span className={`af-chevron ${styles.nextIcon}`} aria-hidden="true" />
         </a>
       </div>
     </section>

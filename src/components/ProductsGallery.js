@@ -112,7 +112,7 @@ export default function ProductsGallery({ families, familyId, selectedVariantsBy
               }}>
                 <Image src={photo(id, finish)} alt="" width={110} height={110} unoptimized />
                 <span><strong>{label}</strong><small>{finish.name}</small></span>
-                <span aria-hidden="true" className={styles.arrow}>↗</span>
+                <span aria-hidden="true" className={`af-chevron af-chevron--right ${styles.arrow}`} />
               </button>;
             })}
           </div>

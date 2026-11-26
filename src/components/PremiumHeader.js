@@ -324,7 +324,7 @@ export default function PremiumHeader({ ref, families = HEADER_FAMILIES, familyI
           View Cart
         </Link>
         <Link className={styles.collection} href={onHome ? "#products" : "/#products"} onNavigate={() => setPanel(null)}>
-          Explore the collection <span aria-hidden="true">↗</span>
+          Explore the collection
         </Link>
       </Drawer>
     </header>

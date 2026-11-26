@@ -163,16 +163,10 @@
 }
 .disclosure:hover, .disclosure[aria-expanded="true"] { color: var(--af-accent); }
 .chevron {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  margin-inline-end: 5px;
-  border: solid currentColor;
-  border-width: 0 1.5px 1.5px 0;
-  transform: translateY(-2px) rotate(45deg);
+  margin-inline-end: 2px;
   transition: transform 230ms var(--af-ease-premium);
 }
-[aria-expanded="true"] > .chevron { transform: translateY(2px) rotate(225deg); }
+[aria-expanded="true"] > .chevron { transform: rotate(180deg); }
 .answer {
   display: grid;
   grid-template-rows: 0fr;

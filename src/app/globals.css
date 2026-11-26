@@ -261,6 +261,25 @@ a {
    PREMIUM BUTTON FOUNDATION
 ======================================== */
 
+.af-chevron {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  place-items: center;
+}
+
+.af-chevron::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-1.5px) rotate(45deg);
+}
+
+.af-chevron--right { transform: rotate(-90deg); }
+
 .af-button {
   position: relative;
   display: inline-flex;

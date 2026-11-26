@@ -85,7 +85,7 @@
 .cards strong, .cards small { display: block; }
 .cards strong { font: 550 clamp(16px, 1.45vw, 22px)/1.2 var(--af-font-heading); }
 .cards small { margin-top: 5px; font-size: 11px; color: var(--muted); }
-.arrow { margin-left: auto; color: var(--accent); font-size: 22px; }
+.arrow { margin-inline-start: auto; color: var(--accent); }
 @media (hover: hover) {
   .cards button:hover, .thumbs button:hover { border-color: var(--accent); }
   .add:hover { filter: brightness(1.08); }
