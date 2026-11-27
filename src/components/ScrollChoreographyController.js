@@ -68,12 +68,14 @@ export default function ScrollChoreographyController({
     const detailTrack = sections[2].closest("[data-detail-track]");
     const formSlot = sections[2].querySelector("[data-form-slot]");
     const heroSlot = sections[0].querySelector("[data-hero-model-frame]");
+    const storySlots = sections.map(section => section.querySelector("[data-story-slot]"));
     const banner = document.getElementById("product-parallax-banner");
     const frame = reveal.querySelector("[data-reveal-frame]");
     const slot = reveal.querySelector("[data-reveal-slot]");
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
     let viewport, compact;
-    let centers, heroEnd, top, end, bannerStart, takeCover, bannerEnd, arrival, poses, timelines = [];
+    let centers, heroEnd, heroTravel, top, end, bannerStart, takeCover, bannerEnd, arrival, poses, timelines = [];
+    let portraitBridge;
     const inspection = inspectionRef.current;
     let inspectionSection, laneSection;
 
@@ -99,6 +101,8 @@ export default function ScrollChoreographyController({
           const frameY = frame.getBoundingClientRect().top;
           lane = { left: rect.left, right: rect.right,
             top: Math.max(header + 10, rect.top - frameY), bottom: rect.bottom - frameY };
+        } else if (storySlots[index]) {
+          lane = framing(storySlots[index], sections[index]);
         } else if (index === 2 && formSlot) {
           lane = framing(formSlot, sections[2]);
         } else {
@@ -139,6 +143,9 @@ export default function ScrollChoreographyController({
         const start = (i === 2 ? detailTrack : el).getBoundingClientRect().top;
         return y + start + (el.offsetHeight - height) / 2;
       });
+      const performanceCopy = sections[1].firstElementChild.getBoundingClientRect();
+      const incomingCopy = performanceCopy.top + y;
+      heroTravel = Math.max(centers[0], Math.min(centers[1] - height * .42, incomingCopy - height * .94));
       top = y + reveal.getBoundingClientRect().top;
       end = top + Math.max(0, reveal.offsetHeight - frame.offsetHeight);
       arrival = top - height;
@@ -159,6 +166,11 @@ export default function ScrollChoreographyController({
         poses[2] = fitStagePose(rig.bounds, [.03, .26, -.02], poses[1].camera, viewport,
           framing(formSlot, sections[2]), compact ? .83 : .78, rig.silhouette);
       }
+      for (const i of [1, 4, 5]) {
+        const { camera, product } = poses[i];
+        poses[i] = fitStagePose(rig.bounds, product.rotation, camera, viewport,
+          framing(storySlots[i], sections[i]), compact ? .89 : .85, rig.silhouette);
+      }
       const cameraPose = rig.camera ? poses[0].camera : poses[3].camera;
       const revealBounds = compact && rig.compactRevealBounds ? rig.compactRevealBounds : rig.expandedBounds;
       poses[3] = fitStagePose(revealBounds, rig.revealRotation ?? [.03, -.77, -.035],
@@ -167,8 +179,26 @@ export default function ScrollChoreographyController({
       timelines.forEach(t => t.kill());
       timelines = SCROLL_CHOREOGRAPHY.map((segment, i) => createScrollChoreographyTimeline({
         productRoot: root, camera, viewport, segment, invalidate, from: poses[i], to: poses[i + 1],
-        modelBounds: !rig.camera && i !== 2 && i !== 3 && !(formSlot && i <= 1) ? rig.bounds : null,
+        modelBounds: i === 4 && !rig.camera ? rig.bounds : null,
+        silhouette: rig.silhouette,
+        regions: i === 4 ? [framing(storySlots[4], sections[4]), framing(storySlots[5], sections[5])] : null,
       }));
+      portraitBridge?.travel.forEach(t => t.kill());
+      portraitBridge = null;
+      if (compact) {
+        const cameraPose = poses[0].camera;
+        const besideCopy = fitStagePose(rig.bounds, [0, -.14, 0], cameraPose, viewport, {
+          left: performanceCopy.right + 12, right: viewport.width * .95,
+          top: height * .29, bottom: height * .88,
+        }, .93, rig.silhouette);
+        const start = Math.max(centers[0], incomingCopy - height * 1.03);
+        const arrival = Math.max(start + height * .18, incomingCopy - height * .76);
+        const release = Math.max(arrival, centers[1] - height * .23);
+        const segment = { ...SCROLL_CHOREOGRAPHY[0], id: "portrait-hero-bridge" };
+        const travel = [[poses[0], besideCopy], [besideCopy, poses[1]]].map(([from, to]) =>
+          createScrollChoreographyTimeline({ productRoot: root, camera, viewport, segment, invalidate, from, to }));
+        portraitBridge = { start, arrival, release, travel };
+      }
     }
 
     function update(y) {
@@ -179,7 +209,7 @@ export default function ScrollChoreographyController({
       if (formSlot && y >= centers[1] && y < top) {
         if (y < bannerEnd - h * .75) {
           timelines[1].sample(0);
-          opacity = 1 - phase(fraction(y, bannerStart, takeCover), .12, .9);
+          opacity = 1 - phase(fraction(y, Math.max(bannerStart, centers[1]), takeCover), .12, .9);
         } else if (y < centers[2]) {
           // The banner masks the repositioning. The same assembled model then
           // rises under its receding edge into the measured Form & Finish slot.
@@ -197,8 +227,15 @@ export default function ScrollChoreographyController({
         }
       } else if (y < centers[2]) {
         const i = y < centers[1] ? 0 : 1;
-        const t = fraction(y, centers[i], centers[i + 1]);
-        timelines[i].sample(reduced ? Number(t >= .5) : t);
+        const t = fraction(y, i === 0 ? heroTravel : centers[i], centers[i + 1]);
+        if (i === 0 && portraitBridge && !reduced) {
+          // Copy and product share a column only after the text has passed above the model.
+          const { start, arrival, release, travel } = portraitBridge;
+          if (y < release) travel[0].sample(fraction(y, start, arrival));
+          else travel[1].sample(fraction(y, release, centers[1]));
+        } else {
+          timelines[i].sample(reduced ? Number(t >= .5) : t);
+        }
       } else if (y < arrival) {
         const cover = fraction(y, bannerStart, takeCover);
         timelines[2].sample(reduced ? Number(cover >= .65) : phase(cover, .15, 1));
@@ -242,8 +279,10 @@ export default function ScrollChoreographyController({
     const observer = new ResizeObserver(refresh);
     observer.observe(slot);
     observer.observe(sections[0]);
+    observer.observe(sections[1].firstElementChild);
     if (heroSlot) observer.observe(heroSlot);
     if (formSlot) observer.observe(formSlot);
+    storySlots.forEach(slot => { if (slot) observer.observe(slot); });
     if (rig.fitPortraitHero) observer.observe(sections[0].querySelector("[data-hero-copy]"));
     observer.observe(canvasContainer);
     preference.addEventListener("change", refresh);
@@ -254,6 +293,7 @@ export default function ScrollChoreographyController({
       trigger.kill();
       canvasContainer.style.removeProperty("opacity");
       timelines.forEach(t => t.kill());
+      portraitBridge?.travel.forEach(t => t.kill());
       inspection.section = null;
       onInspectionSectionChange(null);
     };

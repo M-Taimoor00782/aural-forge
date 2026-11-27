@@ -115,7 +115,7 @@ function SiteClosingSections({
         id="newsletter"
         aria-labelledby="newsletter-heading"
         style={{
-          paddingBlock: "clamp(80px, 10vw, 145px)",
+          paddingBlock: "clamp(54px, 7vw, 102px)",
           borderTop: "1px solid var(--af-border)",
           borderBottom: "1px solid var(--af-border)",
           background:
@@ -308,7 +308,7 @@ export default function ExperienceRuntime({ initialFamilyId = DEFAULT_PRODUCT_FA
   // Keep the shared 3D scene mounted.
   // Fade its presentation when the Products section takes over.
   useEffect(() => {
-    const boundary = document.getElementById("products");
+    const boundary = document.getElementById("af-products-heading");
 
     if (!boundary) return;
 
