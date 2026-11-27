@@ -73,7 +73,7 @@ export default function ScrollChoreographyController({
     const slot = reveal.querySelector("[data-reveal-slot]");
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
     let viewport, compact;
-    let centers, top, end, bannerStart, takeCover, bannerEnd, arrival, poses, timelines = [];
+    let centers, heroEnd, top, end, bannerStart, takeCover, bannerEnd, arrival, poses, timelines = [];
     const inspection = inspectionRef.current;
     let inspectionSection, laneSection;
 
@@ -85,13 +85,12 @@ export default function ScrollChoreographyController({
       const heldReveal = duringReveal && (reduced || progress <= .08 || progress >= .94);
       const stable = [1, 2, 4, 5].find(i => Math.abs(y - centers[i]) <= height * .09 &&
         (i !== 2 || (formSlot ? y >= bannerEnd - 1 : y < bannerStart + height * .10)));
-      const index = y <= Math.max(1, centers[0] + height * .075) ? 0 : heldReveal ? 3 : stable;
+      const index = y < heroEnd ? 0 : heldReveal ? 3 : stable;
       const section = index === undefined ? null : ids[index];
       inspection.exclusive = y >= bannerStart && y <= end && !heldReveal && section !== "detail";
       inspection.section = section;
 
-      if (section && laneSection !== section) {
-        const hero = index === 0;
+      if (section && index !== 0 && laneSection !== section) {
         const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
         const edge = Math.max(12, width * .04);
         let lane;
@@ -103,18 +102,15 @@ export default function ScrollChoreographyController({
         } else if (index === 2 && formSlot) {
           lane = framing(formSlot, sections[2]);
         } else {
-          const copy = hero ? sections[0].querySelector("[data-hero-copy]") : sections[index].firstElementChild;
+          const copy = sections[index].firstElementChild;
           const rect = copy.getBoundingClientRect();
-          const copyOnLeft = hero || index === 5;
-          const relativeBottom = rect.bottom + y - centers[index] + (hero ? 0 : height * .09);
+          const copyOnLeft = index === 5;
+          const relativeBottom = rect.bottom + y - centers[index] + height * .09;
           lane = {
             left: !compact && copyOnLeft ? rect.right + 12 : edge,
             right: !compact && !copyOnLeft ? rect.left - 12 : width - edge,
             top: compact ? Math.max(header + 10, relativeBottom + 10) : header + 12,
-            bottom: hero
-              ? (compact ? sections[0].querySelector("[data-hero-action]") : sections[0].lastElementChild)
-                .getBoundingClientRect().top + y - centers[0] - 12
-              : height - 22,
+            bottom: height - 22,
           };
         }
         inspection.lane = lane;
@@ -138,6 +134,7 @@ export default function ScrollChoreographyController({
       compact = matchMedia("(max-aspect-ratio: 3/4)").matches;
       const y = window.scrollY;
       const height = viewport.height;
+      heroEnd = y + sections[0].getBoundingClientRect().bottom;
       centers = sections.map((el, i) => {
         const start = (i === 2 ? detailTrack : el).getBoundingClientRect().top;
         return y + start + (el.offsetHeight - height) / 2;
@@ -244,6 +241,7 @@ export default function ScrollChoreographyController({
     };
     const observer = new ResizeObserver(refresh);
     observer.observe(slot);
+    observer.observe(sections[0]);
     if (heroSlot) observer.observe(heroSlot);
     if (formSlot) observer.observe(formSlot);
     if (rig.fitPortraitHero) observer.observe(sections[0].querySelector("[data-hero-copy]"));
