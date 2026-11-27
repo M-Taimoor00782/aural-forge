@@ -73,7 +73,7 @@ export default function ProductInspectionController({ children, section, inspect
   const contentRef = useRef(null);
   const halfRef = useRef(null);
   const revealHalfRef = useRef(null);
-  const reduced = useRef(false);
+  const motionPreference = useRef(null);
   const motion = useRef({
     yaw: 0, pitch: 0, targetYaw: 0, targetPitch: 0,
     hoverYaw: 0, hoverPitch: 0, engaged: false, dragging: false,
@@ -104,10 +104,17 @@ export default function ProductInspectionController({ children, section, inspect
 
   useEffect(() => {
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => { reduced.current = preference.matches; invalidate(); };
+    motionPreference.current = preference;
+    const sync = () => {
+      if (preference.matches) motion.current.hoverYaw = motion.current.hoverPitch = 0;
+      invalidate();
+    };
     sync();
     preference.addEventListener("change", sync);
-    return () => preference.removeEventListener("change", sync);
+    return () => {
+      preference.removeEventListener("change", sync);
+      motionPreference.current = null;
+    };
   }, [invalidate]);
 
   useLayoutEffect(() => {
@@ -193,7 +200,7 @@ export default function ProductInspectionController({ children, section, inspect
       section,
       down,
       follow(event, region) {
-        if (!available() || gesture || reduced.current) return;
+        if (!available() || gesture || motionPreference.current?.matches) return;
         const [x, y] = positionInRegion(event, region);
         const nextYaw = .14 * bounded(x - (hoverOrigin?.[0] ?? 0), 1);
         const nextPitch = -.085 * bounded(y - (hoverOrigin?.[1] ?? 0), 1);
@@ -240,7 +247,9 @@ export default function ProductInspectionController({ children, section, inspect
     }
     const half = inspection.section === "acoustic-reveal" && revealHalfRef.current
       ? revealHalfRef.current : halfRef.current;
-    const alpha = reduced.current ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
+    const reduced = motionPreference.current?.matches;
+    if (reduced) rotation.hoverYaw = rotation.hoverPitch = 0;
+    const alpha = reduced ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
     function approach(value, target) {
       if (Math.abs(value - target) <= EPSILON || alpha === 1) return target;
       invalidate();
