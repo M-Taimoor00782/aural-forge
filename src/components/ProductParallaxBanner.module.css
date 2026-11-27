@@ -66,7 +66,7 @@
 
 .copy h2 {
   margin: 0;
-  font: 600 clamp(36px, 4vw, 66px)/1.06 var(--af-font-heading);
+  font: 500 clamp(36px, 4vw, 66px)/1.06 var(--af-font-heading);
   letter-spacing: -.045em;
   text-wrap: balance;
 }

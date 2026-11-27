@@ -6,7 +6,7 @@
   border: 1px solid var(--af-border-strong);
   border-radius: 9px;
   color: var(--af-text-primary);
-  font: 550 13px/1 var(--af-font-button);
+  font: 500 13px/1 var(--af-font-button);
   text-align: center;
 }
 .stepper button {

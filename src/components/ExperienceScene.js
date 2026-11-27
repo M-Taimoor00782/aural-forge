@@ -17,7 +17,7 @@ import {
 
 import { headphoneMechanism, measureMechanism, phase } from "@/lib/animateProductReveal";
 import { useProductVariantMaterials } from "@/lib/useProductVariantMaterials";
-import { measureHeadphoneBounds } from "@/lib/responsiveComposition";
+import { measureHeadphoneBounds, measureSilhouette } from "@/lib/responsiveComposition";
 
 import ProductStage from "./ProductStage";
 import SmartwatchProductStage from "./SmartwatchProductStage";
@@ -32,12 +32,13 @@ function HeadphoneProductExperience(props) {
   const rig = useMemo(() => {
     const scene = source.clone(true);
     const bounds = measureHeadphoneBounds(scene);
+    const silhouette = measureSilhouette(scene);
     const presentation = new Group();
     presentation.name = "HeadphoneInspection";
     presentation.add(scene);
     const sample = headphoneMechanism(scene, presentation);
     return {
-      scene: presentation, bounds,
+      scene: presentation, bounds, silhouette,
       sample(progress, display, compact) {
         sample(progress, display, compact);
         if (revealFill.current) revealFill.current.intensity = .6 * phase(progress, .18, .8);

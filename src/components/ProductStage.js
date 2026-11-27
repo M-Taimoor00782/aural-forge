@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import ProductInspectionController from "./ProductInspectionController";
 import ScrollChoreographyController from "./ScrollChoreographyController";
 
@@ -10,7 +10,12 @@ export default function ProductStage({
   onInspectionSectionChange, onStageReady, onStageUnavailable, onStageMotionRegistration,
 }) {
   const narrativeRoot = useRef(null);
+  const firstFrame = useRef(null);
   const invalidate = useThree(state => state.invalidate);
+  useFrame(() => {
+    const pending = firstFrame.current;
+    if (pending && !pending.id) pending.id = requestAnimationFrame(pending.ready);
+  });
   useEffect(() => {
     const outer = productRootRef.current;
     function handoff(amount, entering) {
@@ -27,8 +32,13 @@ export default function ProductStage({
     onStageMotionRegistration(family.id, {
       exit: p => handoff(p, false), enter: p => handoff(1 - p, true),
     });
-    onStageReady(family.id);
+    // Wait for the first family frame to be submitted to WebGL before blending in.
+    const pending = { id: 0, ready: () => onStageReady(family.id) };
+    firstFrame.current = pending;
+    invalidate();
     return () => {
+      cancelAnimationFrame(pending.id);
+      firstFrame.current = null;
       onStageMotionRegistration(family.id, null);
       onStageUnavailable(family.id);
     };

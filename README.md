@@ -83,6 +83,6 @@ aural-forge/
 
 ## Author and credits
 
-Built by [Muhammad Taimoor](https://github.com/M-Taimoor00782). Typography uses Saira, Montserrat, and Inter via Google Fonts.
+Built by [Muhammad Taimoor](https://github.com/M-Taimoor00782). Display typography uses Pattanakarn Medium by Anupap Jaichumnan (Jipatype). Body text uses Inter via Google Fonts.
 
 The repository does not include a project license or source and license records for its product models and artwork.

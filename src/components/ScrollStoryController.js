@@ -8,7 +8,7 @@ import { SCROLL_STORY } from "@/config/scrollStory";
 gsap.registerPlugin(ScrollTrigger);
 
 export default function ScrollStoryController({
-  onStoryStateChange,
+  onStoryStateChange, familyId,
 }) {
   useEffect(() => {
     const triggers = SCROLL_STORY.map((storyState) => {
@@ -38,7 +38,7 @@ export default function ScrollStoryController({
         trigger.kill();
       });
     };
-  }, [onStoryStateChange]);
+  }, [familyId, onStoryStateChange]);
 
   return null;
 }
