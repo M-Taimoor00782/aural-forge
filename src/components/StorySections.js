@@ -222,7 +222,7 @@ export default function StorySections({
 
       <section
         id="performance"
-        className={styles.section}
+        className={`${styles.section} ${styles.beat} ${styles.performance}`}
         aria-labelledby="performance-heading"
         tabIndex={-1}
       >
@@ -231,6 +231,7 @@ export default function StorySections({
           content={story.performance}
           position="right"
         />
+        <div className={styles.storySlot} data-story-slot aria-hidden="true" />
         {inspection("performance")}
       </section>
 
@@ -258,7 +259,7 @@ export default function StorySections({
 
       <section
         id="configurator"
-        className={styles.section}
+        className={`${styles.section} ${styles.beat}`}
         aria-labelledby="configurator-heading"
         tabIndex={-1}
       >
@@ -267,6 +268,7 @@ export default function StorySections({
           content={story.configurator}
           position="right"
         />
+        <div className={styles.storySlot} data-story-slot aria-hidden="true" />
         {inspection("configurator")}
       </section>
 
@@ -274,7 +276,7 @@ export default function StorySections({
 
       <section
         id="finale"
-        className={styles.section}
+        className={`${styles.section} ${styles.beat} ${styles.finale}`}
         aria-labelledby="finale-heading"
         tabIndex={-1}
       >
@@ -282,6 +284,7 @@ export default function StorySections({
           id="finale"
           content={story.finale}
         />
+        <div className={styles.storySlot} data-story-slot aria-hidden="true" />
         {inspection("finale")}
       </section>
     </main>

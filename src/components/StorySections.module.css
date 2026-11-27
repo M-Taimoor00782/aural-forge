@@ -417,12 +417,12 @@
   grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr);
   align-items: center;
   gap: clamp(22px, 5vw, 96px);
-  min-height: 100svh;
-  padding: clamp(100px, 13svh, 152px) var(--af-container-inset) clamp(34px, 6svh, 78px);
+  min-height: clamp(450px, 84svh, 900px);
+  padding: clamp(76px, 10svh, 116px) var(--af-container-inset) clamp(30px, 5svh, 66px);
 }
 
 .formDetail .content { grid-column: 1; max-width: 100%; }
-.formSlot { grid-column: 2; min-width: 0; height: min(66svh, 620px); }
+.formSlot { grid-column: 2; min-width: 0; height: min(59svh, 580px); }
 .formDetail .heading { font-size: clamp(42px, 5.1vw, 78px); }
 
 @media (max-aspect-ratio: 3/4) {
@@ -431,8 +431,47 @@
     grid-template-rows: auto minmax(180px, 1fr);
     align-items: start;
     gap: clamp(14px, 3svh, 30px);
-    padding-block: clamp(86px, 12svh, 116px) clamp(24px, 5svh, 58px);
+    padding-block: clamp(66px, 9svh, 92px) clamp(24px, 4svh, 46px);
   }
   .formSlot { grid-column: 1; height: auto; align-self: stretch; }
   .formDetail .heading { font-size: clamp(36px, 9vw, 60px); }
+}
+
+.section.beat {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr);
+  grid-template-areas: "model copy";
+  gap: clamp(24px, 5vw, 84px);
+  min-height: clamp(390px, 76svh, 810px);
+  padding-block: clamp(42px, 7svh, 76px) clamp(30px, 5svh, 62px);
+}
+
+.section.beat > .content { grid-area: copy; width: 100%; margin-inline: 0; }
+.storySlot { grid-area: model; width: 100%; height: clamp(220px, 50svh, 520px); }
+.section.performance { align-content: start; }
+.section.performance > .content {
+  align-self: start;
+  margin-top: clamp(12px, 4svh, 40px);
+}
+.section.performance .storySlot { height: clamp(250px, 57svh, 550px); }
+.section.finale {
+  grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+  grid-template-areas: "copy model";
+}
+
+@media (max-height: 530px) and (aspect-ratio > 3/4) {
+  .section.beat { padding-block-start: 80px; }
+}
+
+@media (max-aspect-ratio: 3/4) {
+  .section.beat, .section.finale {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "copy" "model";
+    align-content: start;
+    gap: clamp(18px, 3svh, 34px);
+    min-height: clamp(420px, 77svh, 770px);
+    padding-block: clamp(32px, 5svh, 55px) clamp(22px, 4svh, 42px);
+  }
+  .section.performance > .content { width: min(62%, 350px); margin-top: 0; }
+  .section.beat .storySlot { height: clamp(235px, 42svh, 476px); }
 }

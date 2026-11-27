@@ -164,14 +164,15 @@ function getProductRegion(sectionId, viewport) {
 function getTransitionRegion(
   segment,
   viewport,
-  progress
+  progress,
+  regions
 ) {
-  const outgoing = getProductRegion(
+  const outgoing = regions?.[0] ?? getProductRegion(
     segment.fromSectionId,
     viewport
   );
 
-  const incoming = getProductRegion(
+  const incoming = regions?.[1] ?? getProductRegion(
     segment.toSectionId,
     viewport
   );
@@ -218,6 +219,7 @@ function fitIntermediatePose({
   progress,
   regionProgress,
   segment,
+  regions,
 }) {
   if (!corners || progress <= 0 || progress >= 1) {
     return { position, scale };
@@ -234,7 +236,8 @@ function fitIntermediatePose({
   const region = getTransitionRegion(
     segment,
     viewport,
-    regionProgress
+    regionProgress,
+    regions
   );
 
   const leftNdc =
@@ -374,6 +377,8 @@ export function createScrollChoreographyTimeline({
   invalidate,
   viewport,
   modelBounds,
+  regions,
+  silhouette,
   from,
   to,
 }) {
@@ -406,7 +411,8 @@ export function createScrollChoreographyTimeline({
     );
 
   const corners = modelBounds
-    ? getBoundsCorners(modelBounds).map(xyz => ({ local: new Vector3(...xyz), rotated: new Vector3() }))
+    ? (silhouette ?? getBoundsCorners(modelBounds).map(xyz => new Vector3(...xyz)))
+      .map(local => ({ local, rotated: new Vector3() }))
     : null;
 
   // Preserve the approved Hero transition.
@@ -541,6 +547,7 @@ export function createScrollChoreographyTimeline({
       progress,
       regionProgress: positionProgress,
       segment,
+      regions,
     });
 
     productRoot.position.set(

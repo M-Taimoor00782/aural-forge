@@ -1,5 +1,5 @@
 .about, .faq, .frequency {
-  padding-block: clamp(46px, 7vw, 108px);
+  padding-block: clamp(38px, 5.5vw, 88px);
   border-block-start: 1px solid var(--af-border);
 }
 .about { background: var(--af-surface); }
@@ -208,7 +208,7 @@
 }
 
 .footer {
-  padding-block: clamp(40px, 6vw, 94px) 24px;
+  padding-block: clamp(38px, 5vw, 76px) 24px;
   background: var(--af-background);
 }
 .footerGrid {
