@@ -8,7 +8,13 @@
   user-select: none;
 }
 .surface[data-af-cursor="grabbing"] { cursor: grabbing; }
-.surface:focus-visible {
+.heroKeyboard {
+  position: absolute;
+  inset: 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+.surface:focus-visible, .heroKeyboard:focus-visible {
   outline: 2px solid var(--af-accent);
   outline-offset: 3px;
   border-radius: 10px;

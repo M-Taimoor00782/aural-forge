@@ -7,6 +7,14 @@ import { Box3, Matrix4, Vector3 } from "three";
 const TAU = Math.PI * 2;
 const MAX_PITCH = .16;
 const EPSILON = .00035;
+const bounded = (value, limit) => Math.max(-limit, Math.min(limit, value));
+
+function positionInRegion(event, region) {
+  return [
+    bounded(2 * (event.clientX - region.left) / region.width - 1, 1),
+    bounded(2 * (event.clientY - region.top) / region.height - 1, 1),
+  ];
+}
 
 function restingYaw(yaw) {
   return Math.round(yaw / TAU) * TAU;
@@ -65,7 +73,7 @@ export default function ProductInspectionController({ children, section, inspect
   const contentRef = useRef(null);
   const halfRef = useRef(null);
   const revealHalfRef = useRef(null);
-  const reduced = useRef(false);
+  const motionPreference = useRef(null);
   const motion = useRef({
     yaw: 0, pitch: 0, targetYaw: 0, targetPitch: 0,
     hoverYaw: 0, hoverPitch: 0, engaged: false, dragging: false,
@@ -96,10 +104,17 @@ export default function ProductInspectionController({ children, section, inspect
 
   useEffect(() => {
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => { reduced.current = preference.matches; invalidate(); };
+    motionPreference.current = preference;
+    const sync = () => {
+      if (preference.matches) motion.current.hoverYaw = motion.current.hoverPitch = 0;
+      invalidate();
+    };
     sync();
     preference.addEventListener("change", sync);
-    return () => preference.removeEventListener("change", sync);
+    return () => {
+      preference.removeEventListener("change", sync);
+      motionPreference.current = null;
+    };
   }, [invalidate]);
 
   useLayoutEffect(() => {
@@ -108,17 +123,22 @@ export default function ProductInspectionController({ children, section, inspect
     if (!section) return;
 
     let gesture;
+    let hoverOrigin = null;
     const available = () => inspection.section === section;
     function end(event) {
       if (!gesture || (event?.pointerId !== undefined && event.pointerId !== gesture.id)) return;
-      const { surface, id } = gesture;
+      const { surface, id, region, touch } = gesture;
+      if (rotation.dragging && region && !touch && event?.type === "pointerup") {
+        hoverOrigin = positionInRegion(event, surface.getBoundingClientRect());
+      }
       gesture = null;
       rotation.dragging = false;
       window.removeEventListener("pointermove", move, true);
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", end, true);
       window.removeEventListener("pointerdown", cancelForPinch, true);
-      surface.dataset.afCursor = "grab";
+      if (section === "hero") delete surface.dataset.afCursor;
+      else surface.dataset.afCursor = "grab";
       if (surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
       invalidate();
     }
@@ -127,7 +147,7 @@ export default function ProductInspectionController({ children, section, inspect
       if (!available()) return;
       rotation.engaged = true;
       rotation.targetYaw += yaw;
-      rotation.targetPitch = Math.min(MAX_PITCH, Math.max(-MAX_PITCH, rotation.targetPitch + pitch));
+      rotation.targetPitch = bounded(rotation.targetPitch + pitch, MAX_PITCH);
       invalidate();
     }
 
@@ -135,13 +155,14 @@ export default function ProductInspectionController({ children, section, inspect
       if (event.pointerType === "touch" && !event.isPrimary) end();
     }
 
-    function down(event) {
+    function down(event, region) {
       if (!available() || gesture || !event.isPrimary ||
           (event.pointerType !== "touch" && event.button !== 0)) return;
       const surface = event.currentTarget;
       gesture = { id: event.pointerId, x: event.clientX, y: event.clientY,
-        surface, touch: event.pointerType === "touch",
-        pixelsPerTurn: Math.min(640, Math.max(220, surface.clientWidth * .9)) };
+        surface, region, touch: event.pointerType === "touch",
+        pixelsPerTurn: region ? region.width * .76 : Math.min(640, Math.max(220, surface.clientWidth * .9)),
+        pitchPerPixel: region ? 2.1 / region.height : .0035 };
       if (!gesture.touch) event.preventDefault();
       window.addEventListener("pointermove", move, { capture: true, passive: true });
       window.addEventListener("pointerup", end, true);
@@ -162,6 +183,9 @@ export default function ProductInspectionController({ children, section, inspect
           return;
         }
         rotation.dragging = true;
+        rotation.targetYaw = rotation.yaw;
+        rotation.targetPitch = rotation.pitch;
+        rotation.hoverYaw = rotation.hoverPitch = 0;
         if (!gesture.surface.hasPointerCapture(gesture.id)) {
           gesture.surface.setPointerCapture(gesture.id);
         }
@@ -169,23 +193,31 @@ export default function ProductInspectionController({ children, section, inspect
       }
       gesture.x = event.clientX;
       gesture.y = event.clientY;
-      steer(dx / gesture.pixelsPerTurn * TAU, dy * .0035);
+      steer(dx / gesture.pixelsPerTurn * TAU, dy * gesture.pitchPerPixel);
     }
 
     const api = {
+      section,
       down,
-      follow(x, y) {
-        if (!available() || gesture || rotation.engaged || reduced.current) return;
-        rotation.hoverYaw = .14 * x;
-        rotation.hoverPitch = -.085 * y;
+      follow(event, region) {
+        if (!available() || gesture || motionPreference.current?.matches) return;
+        const [x, y] = positionInRegion(event, region);
+        const nextYaw = .14 * bounded(x - (hoverOrigin?.[0] ?? 0), 1);
+        const nextPitch = -.085 * bounded(y - (hoverOrigin?.[1] ?? 0), 1);
+        if (rotation.hoverYaw === nextYaw && rotation.hoverPitch === nextPitch) return;
+        rotation.hoverYaw = nextYaw;
+        rotation.hoverPitch = nextPitch;
         invalidate();
       },
       leave() {
+        if (gesture) return;
+        hoverOrigin = null;
+        if (!rotation.hoverYaw && !rotation.hoverPitch) return;
         rotation.hoverYaw = rotation.hoverPitch = 0;
         invalidate();
       },
       turn: (yaw, pitch) => steer(yaw * Math.PI / 6, pitch * .06),
-      reset() { end(); reset(rotation); invalidate(); },
+      reset() { end(); hoverOrigin = null; reset(rotation); invalidate(); },
     };
     inspection.api = api;
     inspection.refreshSurface = invalidate;
@@ -215,17 +247,19 @@ export default function ProductInspectionController({ children, section, inspect
     }
     const half = inspection.section === "acoustic-reveal" && revealHalfRef.current
       ? revealHalfRef.current : halfRef.current;
-    const alpha = reduced.current ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
+    const reduced = motionPreference.current?.matches;
+    if (reduced) rotation.hoverYaw = rotation.hoverPitch = 0;
+    const alpha = reduced ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
     function approach(value, target) {
       if (Math.abs(value - target) <= EPSILON || alpha === 1) return target;
       invalidate();
       return value + (target - value) * alpha;
     }
-    rotation.yaw = approach(rotation.yaw, rotation.targetYaw + (rotation.engaged ? 0 : rotation.hoverYaw));
-    rotation.pitch = approach(rotation.pitch, rotation.targetPitch + (rotation.engaged ? 0 : rotation.hoverPitch));
+    rotation.yaw = approach(rotation.yaw, rotation.targetYaw + rotation.hoverYaw);
+    rotation.pitch = approach(rotation.pitch, bounded(rotation.targetPitch + rotation.hoverPitch, MAX_PITCH));
     if (!rotation.engaged && !rotation.hoverYaw && rotation.yaw === rotation.targetYaw) rotation.yaw = rotation.targetYaw = 0;
     pivot.rotation.set(rotation.pitch, rotation.yaw, 0, "YXZ");
-    if (section && inspection.section === section && inspection.lane && half && !rotation.dragging) {
+    if (section && section !== "hero" && inspection.section === section && inspection.lane && half && !rotation.dragging) {
       inspection.placeSurface?.(projectSurface(pivot, half, camera, size, inspection.lane));
     }
   });

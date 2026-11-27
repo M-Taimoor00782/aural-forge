@@ -11,9 +11,16 @@ const KEY_ROTATIONS = {
 };
 
 export default function ProductInspectionControls({ section, inspectionRef }) {
+  const hero = section === "hero";
   const registerSurface = useCallback(node => {
     if (!node) return;
     const inspection = inspectionRef.current;
+    function restoreFocus() {
+      if (document.activeElement === node) {
+        node.closest("section")?.focus({ preventScroll: true });
+      }
+    }
+    if (hero) return restoreFocus;
     let previous;
     function place(bounds) {
       const [left, top, width, height] = bounds.map(Math.round);
@@ -29,12 +36,10 @@ export default function ProductInspectionControls({ section, inspectionRef }) {
     inspection.placeSurface = place;
     inspection.refreshSurface?.();
     return () => {
-      if (document.activeElement === node) {
-        node.closest("section")?.focus({ preventScroll: true });
-      }
+      restoreFocus();
       if (inspection.placeSurface === place) inspection.placeSurface = null;
     };
-  }, [inspectionRef]);
+  }, [hero, inspectionRef]);
 
   function handleKey(event) {
     const direction = KEY_ROTATIONS[event.key];
@@ -47,11 +52,12 @@ export default function ProductInspectionControls({ section, inspectionRef }) {
   }
 
   return (
-    <div className={styles.surface} data-inspection-section={section} data-af-cursor="grab"
+    <div className={hero ? styles.heroKeyboard : styles.surface} data-inspection-section={section}
+      data-af-cursor={hero ? undefined : "grab"}
       ref={registerSurface} role="application" tabIndex={0}
       aria-label="3D product inspection" aria-describedby="inspection-instructions"
       onKeyDown={handleKey}
-      onPointerDown={section === "hero" ? undefined : event => inspectionRef.current.api?.down(event)}>
+      onPointerDown={hero ? undefined : event => inspectionRef.current.api?.down(event)}>
       <span id="inspection-instructions" className={styles.instructions}>
         Use the left and right arrow keys to rotate, and the up and down arrow keys to tilt.
         Press Home or Escape to reset. Press Tab to continue.

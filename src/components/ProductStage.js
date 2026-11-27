@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import ProductInspectionController from "./ProductInspectionController";
 import ScrollChoreographyController from "./ScrollChoreographyController";
 
@@ -10,12 +10,7 @@ export default function ProductStage({
   onInspectionSectionChange, onStageReady, onStageUnavailable, onStageMotionRegistration,
 }) {
   const narrativeRoot = useRef(null);
-  const firstFrame = useRef(null);
   const invalidate = useThree(state => state.invalidate);
-  useFrame(() => {
-    const pending = firstFrame.current;
-    if (pending && !pending.id) pending.id = requestAnimationFrame(pending.ready);
-  });
   useEffect(() => {
     const outer = productRootRef.current;
     function handoff(amount, entering) {
@@ -32,17 +27,34 @@ export default function ProductStage({
     onStageMotionRegistration(family.id, {
       exit: p => handoff(p, false), enter: p => handoff(1 - p, true),
     });
-    // Wait for the first family frame to be submitted to WebGL before blending in.
-    const pending = { id: 0, ready: () => onStageReady(family.id) };
-    firstFrame.current = pending;
+    // A mounted GLB is not necessarily in view. Wait until a mesh from this
+    // family has actually drawn before fading out its loading still.
+    const restore = [];
+    let firstFrame;
+    function restoreDrawHooks() {
+      restore.splice(0).forEach(undo => undo());
+    }
+    rig.scene.traverse(mesh => {
+      if (!mesh.isMesh) return;
+      const previous = mesh.onAfterRender;
+      mesh.onAfterRender = function (...args) {
+        previous.apply(this, args);
+        if (firstFrame !== undefined) return;
+        firstFrame = requestAnimationFrame(() => {
+          restoreDrawHooks();
+          onStageReady(family.id);
+        });
+      };
+      restore.push(() => { mesh.onAfterRender = previous; });
+    });
     invalidate();
     return () => {
-      cancelAnimationFrame(pending.id);
-      firstFrame.current = null;
+      cancelAnimationFrame(firstFrame);
+      restoreDrawHooks();
       onStageMotionRegistration(family.id, null);
       onStageUnavailable(family.id);
     };
-  }, [family.id, productRootRef, invalidate, onStageMotionRegistration, onStageReady, onStageUnavailable]);
+  }, [family.id, rig.scene, productRootRef, invalidate, onStageMotionRegistration, onStageReady, onStageUnavailable]);
 
   return (
     <group ref={productRootRef} name="FamilyHandoff">

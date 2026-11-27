@@ -2,23 +2,30 @@ import Image from "next/image";
 import { getProductFinishImage } from "@/config/productFamilies";
 import styles from "./ProductHero.module.css";
 
+const CONTROL = 'a[href], button, input, select, textarea, label, summary, [contenteditable], [role="button"], [role="link"], [tabindex]:not([tabindex="-1"])';
+
 export default function ProductHero({ family, content, variant, price, inspection, inspectionRef, productReady }) {
   const finish = variant?.name ?? variant?.label;
 
   const headphones = family.id === "headphones";
-  const interactive = inspection ? inspectionRef : null;
-  const overControl = event => event.target.closest("a, button, input, select, textarea, label, [contenteditable]");
+  function heroInput() {
+    const api = inspectionRef.current.api;
+    return api?.section === "hero" ? api : null;
+  }
 
   return (
     <section id="hero" className={styles.hero} aria-labelledby="hero-heading" tabIndex={-1}
-      onPointerDown={event => { if (!overControl(event)) interactive?.current.api?.down(event); }}
+      onPointerDown={event => {
+        if (!event.target.closest(CONTROL)) heroInput()?.down(event, event.currentTarget.getBoundingClientRect());
+      }}
       onPointerMove={event => {
         if (event.pointerType !== "mouse") return;
-        const api = interactive?.current.api;
-        if (overControl(event)) api?.leave();
-        else api?.follow(2 * event.clientX / innerWidth - 1, 2 * event.clientY / innerHeight - 1);
+        const api = heroInput();
+        if (!api) return;
+        if (event.target.closest(CONTROL)) api.leave();
+        else api.follow(event, event.currentTarget.getBoundingClientRect());
       }}
-      onPointerLeave={() => interactive?.current.api?.leave()}>
+      onPointerLeave={() => heroInput()?.leave()}>
       <picture className={styles.set}>
         <source
           media="(max-aspect-ratio: 3/4)"
