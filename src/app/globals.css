@@ -5,9 +5,8 @@
  * Dark: Palette 3 — Warm
  * Light: Palette 4 — Cool
  *
- * Saira — Headings
- * Inter — Body
- * Montserrat — Buttons and Navigation
+ * Pattanakarn Medium for display text and controls
+ * Inter for body text
  */
 
 /* ========================================
@@ -28,20 +27,15 @@
   --af-midnight: #1A1621;
 
   /* Fonts with safe fallbacks */
-  --af-font-heading:
-    var(--font-af-heading, "Saira"),
-    "Saira",
-    sans-serif;
+  --af-font-heading: var(--font-af-display, Arial), Arial, sans-serif;
+  font-synthesis: none;
 
   --af-font-body:
     var(--font-af-body, "Inter"),
     "Inter",
     sans-serif;
 
-  --af-font-button:
-    var(--font-af-button, "Montserrat"),
-    "Montserrat",
-    sans-serif;
+  --af-font-button: var(--af-font-heading);
 
   /* Shared layout */
   --af-container-max: 1390px;
@@ -204,7 +198,8 @@ h4,
 h5,
 h6 {
   font-family: var(--af-font-heading);
-  font-weight: 600;
+  font-weight: 500;
+  font-synthesis: none;
   line-height: 1.12;
   letter-spacing: -0.035em;
 }
@@ -298,7 +293,7 @@ a {
 
   font-family: var(--af-font-button);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.3;
 
   cursor: pointer;
@@ -460,18 +455,11 @@ canvas {
     visibility 0s linear 720ms;
 }
 
+.af-cinematic-layer canvas { opacity: 1; }
 .af-cinematic-layer[data-stage-ready="false"] canvas { opacity: 0; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .af-cinematic-layer[data-stage-ready="true"] canvas {
-    animation: af-stage-arrival 175ms linear;
-  }
-}
-
-/* The still clears before the live silhouette is revealed. */
-@keyframes af-stage-arrival {
-  0%, 46% { opacity: 0; }
-  100% { opacity: 1; }
+  .af-cinematic-layer canvas { transition: opacity 260ms ease-out; }
 }
 
 @media (prefers-reduced-motion: reduce) {

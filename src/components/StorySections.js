@@ -54,7 +54,7 @@ const PRODUCT_STORIES = {
 
     detail: {
       eyebrow: "03 / Form & Finish",
-      title: ["Made to", "be noticed."],
+      title: ["Made to be", "noticed."],
       description:
         "Metallic cups sit beside dark cushions, tracing the shape of the earcup.",
     },
@@ -169,7 +169,7 @@ function StoryPanel({
 /*
  * Main storytelling structure.
  *
- * Keep the same six sections in the same order.
+ * Keep stable section IDs for navigation and camera choreography.
  */
 
 export default function StorySections({
@@ -192,6 +192,17 @@ export default function StorySections({
   const inspection = section => inspectionSection === section
     ? <ProductInspectionControls section={section} inspectionRef={inspectionRef} />
     : null;
+  const formAfterBanner = family.id === "headphones";
+  const detail = (
+    <div className={styles.detailTrack} data-detail-track data-after-banner={formAfterBanner}>
+      <section id="detail" className={formAfterBanner ? styles.formDetail : [styles.section, styles.pinnedDetail].join(" ")}
+        aria-labelledby="detail-heading" tabIndex={-1}>
+        <StoryPanel id="detail" content={story.detail} position={formAfterBanner ? "left" : "right"} />
+        {formAfterBanner && <div className={styles.formSlot} data-form-slot aria-hidden="true" />}
+        {inspection("detail")}
+      </section>
+    </div>
+  );
 
   return (
     <main className={styles.story}>
@@ -204,6 +215,7 @@ export default function StorySections({
         productReady={productReady}
         price={formatPrice(activeVariant)}
         inspection={inspection("hero")}
+        inspectionRef={inspectionRef}
       />
 
       {/* 02 — PERFORMANCE */}
@@ -224,27 +236,9 @@ export default function StorySections({
 
       {/* 03 — DETAIL */}
 
-      <div className={styles.detailTrack} data-detail-track>
-        <section
-          id="detail"
-          className={`${styles.section} ${styles.pinnedDetail}`}
-          aria-labelledby="detail-heading"
-          tabIndex={-1}
-        >
-          <StoryPanel
-            id="detail"
-            content={story.detail}
-            position="right"
-          />
-          {inspection("detail")}
-        </section>
-      </div>
-
-      {/* PRODUCT-SPECIFIC IMAGE INTERLUDE */}
-
-      <ProductParallaxBanner
-        familyId={family.id}
-      />
+      {!formAfterBanner && detail}
+      <ProductParallaxBanner familyId={family.id} />
+      {formAfterBanner && detail}
       {/* 04 — MECHANICAL REVEAL */}
 
       <section

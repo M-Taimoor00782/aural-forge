@@ -5,20 +5,20 @@
   display: inline-block;
   margin-bottom: clamp(22px, 4vw, 38px);
   color: var(--af-accent);
-  font: 650 12px/1.5 var(--af-font-button);
+  font: 500 12px/1.5 var(--af-font-button);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 .eyebrow {
   margin-bottom: 12px;
   color: var(--af-accent);
-  font: 650 11px/1.5 var(--af-font-button);
+  font: 500 11px/1.5 var(--af-font-button);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
 .intro h1 {
   margin: 0 0 15px;
-  font: 600 clamp(37px, 6.3vw, 82px)/1.05 var(--af-font-heading);
+  font: 500 clamp(37px, 6.3vw, 82px)/1.05 var(--af-font-heading);
   letter-spacing: -.05em;
   text-wrap: balance;
 }
@@ -30,7 +30,7 @@
 .section { padding-block: clamp(21px, 4vw, 38px); border-bottom: 1px solid var(--af-border); }
 .section h2, .contact h2 {
   margin-bottom: 8px;
-  font: 600 clamp(22px, 3vw, 34px)/1.16 var(--af-font-heading);
+  font: 500 clamp(22px, 3vw, 34px)/1.16 var(--af-font-heading);
   letter-spacing: -.028em;
 }
 .contact {

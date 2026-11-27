@@ -26,6 +26,7 @@ export default function ExperienceCanvas({
         width: "100vw",
         height: "100svh",
         zIndex: 0,
+        pointerEvents: "none",
       }}
       camera={{
         position: camera.position,

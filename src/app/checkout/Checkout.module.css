@@ -1,11 +1,11 @@
 .main { padding-block: clamp(112px, 11vw, 154px) 68px; }
 .main h1 {
   margin: 12px 0 clamp(22px, 4vw, 42px);
-  font: 600 clamp(39px, 6.6vw, 82px)/1.04 var(--af-font-heading);
+  font: 500 clamp(39px, 6.6vw, 82px)/1.04 var(--af-font-heading);
   letter-spacing: -.045em;
   text-wrap: balance;
 }
-.back { color: var(--af-accent); font: 650 13px/1.4 var(--af-font-button); text-decoration: underline; text-underline-offset: 4px; }
+.back { color: var(--af-accent); font: 500 13px/1.4 var(--af-font-button); text-decoration: underline; text-underline-offset: 4px; }
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
@@ -25,7 +25,7 @@
   padding-inline: 7px;
   border-radius: 4px;
   background: var(--af-background);
-  font: 600 clamp(20px, 2.6vw, 29px)/1.25 var(--af-font-heading);
+  font: 500 clamp(20px, 2.6vw, 29px)/1.25 var(--af-font-heading);
 }
 .fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
 .fieldGrid label { min-width: 0; font: 550 14px/1.45 var(--af-font-body); }
@@ -62,7 +62,7 @@
 
 .paymentDialog h2 {
   margin: 0 0 10px;
-  font: 600 clamp(25px, 5vw, 35px)/1.13 var(--af-font-heading);
+  font: 500 clamp(25px, 5vw, 35px)/1.13 var(--af-font-heading);
   letter-spacing: -.03em;
 }
 .paymentDialog p { color: var(--af-text-secondary); font: 400 14px/1.65 var(--af-font-body); }
@@ -82,8 +82,8 @@
 .empty { max-width: 600px; }
 .empty p, .receipt p { color: var(--af-text-secondary); margin-bottom: 20px; }
 .receipt dl { margin-bottom: 16px; }
-.receipt dt { font: 650 13px/1.5 var(--af-font-button); }
-.receipt dd { color: var(--af-accent); font: 650 clamp(17px, 3vw, 29px)/1.4 var(--af-font-heading); overflow-wrap: anywhere; }
+.receipt dt { font: 500 13px/1.5 var(--af-font-button); }
+.receipt dd { color: var(--af-accent); font: 500 clamp(17px, 3vw, 29px)/1.4 var(--af-font-heading); overflow-wrap: anywhere; }
 
 @media (max-width: 760px) {
   .layout { grid-template-columns: minmax(0, 1fr); }

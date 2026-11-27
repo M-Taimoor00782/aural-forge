@@ -13,7 +13,7 @@
 .editorialHeading {
   max-width: 12ch;
   margin: 0;
-  font: 600 clamp(34px, 5.1vw, 72px)/1.04 var(--af-font-heading);
+  font: 500 clamp(34px, 5.1vw, 72px)/1.04 var(--af-font-heading);
   letter-spacing: -.045em;
   text-wrap: balance;
 }
@@ -31,91 +31,116 @@
 }
 .aboutCopy p { margin: 0; }
 
-.frequency { scroll-margin-top: 86px; }
+.frequency {
+  --frequency-rule: #303b46;
+  --frequency-accent: #bfdbef;
+  --frequency-surface: #121820;
+  scroll-margin-top: 86px;
+  background: #101318;
+  color: #f3f3f4;
+}
+:global([data-af-theme="light"]) .frequency {
+  --frequency-rule: #c9d5df;
+  --frequency-accent: #374e66;
+  --frequency-surface: #e1e9f0;
+  background: #f4f7fa;
+  color: var(--af-text-primary);
+}
+.frequencyIntro, .frequencyStack { max-width: 1190px; margin-inline: auto; }
 .frequencyIntro {
-  max-width: 1120px;
-  margin: 0 auto clamp(24px, 4vw, 50px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: clamp(14px, 5vw, 70px);
+  align-items: end;
+  margin-bottom: clamp(30px, 5vw, 70px);
 }
-.frequencyIntro h2 { max-width: none; }
+.frequencyIntro h2 {
+  max-width: 9ch;
+  font-size: clamp(48px, 7.2vw, 106px);
+  line-height: .94;
+}
 .frequencyIntro > p {
-  margin-top: 13px;
-  max-width: 48ch;
+  max-width: 31ch;
+  padding-bottom: .15em;
   color: var(--af-text-secondary);
-  font-size: clamp(14px, 1.3vw, 17px);
+  font-size: clamp(14px, 1.3vw, 18px);
+  line-height: 1.6;
 }
-.frequencyStack {
-  --stagger: clamp(12px, 4vw, 58px);
-  display: grid;
-  gap: clamp(12px, 1.6vw, 24px);
-  max-width: 1120px;
-  margin-inline: auto;
-  list-style: none;
-}
-.frequencyStack li { width: calc(100% - 2 * var(--stagger)); }
-.frequencyStack li:nth-child(2) { margin-inline: auto; }
-.frequencyStack li:nth-child(3) { margin-inline-start: auto; }
+.frequencyStack { list-style: none; border-top: 1px solid var(--frequency-rule); }
 .frequencyCard {
+  --finish-light: #90434c;
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
-  align-items: center;
-  min-height: clamp(180px, 19vw, 265px);
-  border: 1px solid var(--af-border);
-  border-radius: 17px;
-  background: var(--af-surface);
+  grid-template-columns: minmax(0, 1.24fr) minmax(0, 1fr);
+  grid-template-areas: "artwork copy";
+  min-width: 0;
+  border-bottom: 1px solid var(--frequency-rule);
 }
-.frequencyCopy { padding: clamp(18px, 3.4vw, 46px); }
+.frequencyStack li:nth-child(2) .frequencyCard {
+  --finish-light: #94b1c8;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.24fr);
+  grid-template-areas: "copy artwork";
+}
+.frequencyCard[data-family="product-03"] { --finish-light: #ae7758; }
+.frequencyCopy {
+  grid-area: copy;
+  align-self: center;
+  padding: clamp(24px, 5vw, 76px);
+}
+.frequencyCopy .eyebrow { color: var(--frequency-accent); }
 .frequencyCopy h3 {
-  font: 600 clamp(25px, 3.1vw, 44px)/1.08 var(--af-font-heading);
-  letter-spacing: -.035em;
+  font: 500 clamp(31px, 4vw, 65px)/.99 var(--af-font-heading);
+  letter-spacing: -.032em;
   text-wrap: balance;
 }
 .frequencyCopy h3 + p {
-  margin-top: 10px;
-  max-width: 38ch;
+  margin-top: clamp(13px, 1.7vw, 22px);
+  max-width: 34ch;
   color: var(--af-text-secondary);
-  font: 400 clamp(13px, 1.2vw, 16px)/1.6 var(--af-font-body);
+  font: 400 clamp(13px, 1.2vw, 16px)/1.62 var(--af-font-body);
 }
 .frequencyCopy a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-top: 10px;
-  color: var(--af-accent);
-  font: 650 13px/1.4 var(--af-font-button);
+  margin-top: clamp(13px, 2.4vw, 30px);
+  color: var(--frequency-accent);
+  font: 500 15px/1.32 var(--af-font-button);
   text-decoration: underline;
-  text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  text-underline-offset: 5px;
+  transition: color 180ms, text-decoration-color 180ms;
 }
-.frequencyCopy a:hover { color: var(--af-text-primary); }
+.frequencyCopy a:hover, .frequencyCopy a:focus-visible { text-decoration-color: currentColor; }
 .frequencyArtwork {
+  grid-area: artwork;
   display: grid;
   place-items: center;
-  align-self: stretch;
-  border-radius: 0 17px 17px 0;
-  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--finish-light) 28%, var(--af-surface)), var(--af-background) 100%);
+  min-height: clamp(245px, 33vw, 434px);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 42%, color-mix(in srgb, var(--finish-light) 40%, var(--frequency-surface)), transparent 72%),
+    var(--frequency-surface);
 }
 .frequencyArtwork img {
   display: block;
-  width: min(78%, 250px);
+  width: min(72%, 350px);
   height: auto;
-  padding: 9px;
-  filter: drop-shadow(0 14px 12px rgb(0 0 0 / 24%));
+  filter: drop-shadow(0 16px 15px rgb(0 0 0 / 24%));
+  transition: transform 360ms cubic-bezier(.2,.7,.25,1);
 }
-.frequencyCard[data-family="headphones"] { --finish-light: #ac293c; }
-.frequencyCard[data-family="earbuds"] { --finish-light: #b8cdd9; }
-.frequencyCard[data-family="product-03"] { --finish-light: #b17150; }
-
-@media (max-width: 600px) {
-  .frequencyStack { --stagger: 0px; }
-  .frequencyCard { grid-template-columns: minmax(0, 1fr); }
-  .frequencyArtwork {
-    grid-row: 1;
-    min-height: 142px;
-    border-radius: 17px 17px 0 0;
-    border-bottom: 1px solid var(--af-border);
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .frequencyCard:is(:hover, :focus-within) img { transform: scale(1.035); }
+}
+@media (max-width: 620px) {
+  .frequencyIntro { grid-template-columns: minmax(0, 1fr); }
+  .frequencyIntro h2 { font-size: clamp(47px, 12vw, 72px); }
+  .frequencyStack .frequencyCard, .frequencyStack li:nth-child(2) .frequencyCard {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "artwork" "copy";
   }
-  .frequencyArtwork img { width: min(58%, 172px); }
-  .frequencyCopy .eyebrow { margin-bottom: 8px; }
-  .frequencyCopy a { margin-top: 5px; }
+  .frequencyArtwork { min-height: clamp(178px, 56vw, 295px); }
+  .frequencyArtwork img { width: min(67%, 238px); }
+  .frequencyCopy { padding-inline: 0; }
 }
 
 .tabs {
@@ -136,7 +161,7 @@
   border-radius: 9px;
   color: var(--af-text-secondary);
   background: transparent;
-  font: 600 clamp(11px, 1.1vw, 14px)/1.22 var(--af-font-button);
+  font: 500 clamp(11px, 1.1vw, 14px)/1.22 var(--af-font-button);
   cursor: pointer;
 }
 .tabs button[aria-selected="true"] {
@@ -158,7 +183,7 @@
   background: transparent;
   color: var(--af-text-primary);
   text-align: left;
-  font: 600 clamp(13px, 1.2vw, 16px)/1.45 var(--af-font-button);
+  font: 500 clamp(13px, 1.2vw, 16px)/1.45 var(--af-font-button);
   cursor: pointer;
 }
 .disclosure:hover, .disclosure[aria-expanded="true"] { color: var(--af-accent); }
@@ -208,7 +233,7 @@
   border-radius: 8px;
 }
 .socials svg { width: 15px; height: 15px; }
-.footerHeading { margin: 0 0 14px; font: 600 19px/1.2 var(--af-font-heading); }
+.footerHeading { margin: 0 0 14px; font: 500 19px/1.2 var(--af-font-heading); }
 .footerMobileHeading { display: none; }
 .linkList { display: grid; gap: 8px; }
 .linkList button {

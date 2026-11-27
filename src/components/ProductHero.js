@@ -2,11 +2,23 @@ import Image from "next/image";
 import { getProductFinishImage } from "@/config/productFamilies";
 import styles from "./ProductHero.module.css";
 
-export default function ProductHero({ family, content, variant, price, inspection, productReady }) {
+export default function ProductHero({ family, content, variant, price, inspection, inspectionRef, productReady }) {
   const finish = variant?.name ?? variant?.label;
 
+  const headphones = family.id === "headphones";
+  const interactive = inspection ? inspectionRef : null;
+  const overControl = event => event.target.closest("a, button, input, select, textarea, label, [contenteditable]");
+
   return (
-    <section id="hero" className={styles.hero} aria-labelledby="hero-heading" tabIndex={-1}>
+    <section id="hero" className={styles.hero} aria-labelledby="hero-heading" tabIndex={-1}
+      onPointerDown={event => { if (!overControl(event)) interactive?.current.api?.down(event); }}
+      onPointerMove={event => {
+        if (event.pointerType !== "mouse") return;
+        const api = interactive?.current.api;
+        if (overControl(event)) api?.leave();
+        else api?.follow(2 * event.clientX / innerWidth - 1, 2 * event.clientY / innerHeight - 1);
+      }}
+      onPointerLeave={() => interactive?.current.api?.leave()}>
       <picture className={styles.set}>
         <source
           media="(max-aspect-ratio: 3/4)"
@@ -23,7 +35,13 @@ export default function ProductHero({ family, content, variant, price, inspectio
         />
       </picture>
 
-      {variant && <Image
+      {variant && (headphones ? (
+        <div className={styles.headphoneFrame} data-hero-model-frame>
+          <Image src={"/images/hero-headphones/" + variant.id + ".webp"} alt="" fill unoptimized
+            loading="eager" fetchPriority="high" className={styles.headphoneStill}
+            data-hero-still data-ready={productReady} />
+        </div>
+      ) : <Image
         src={getProductFinishImage(family.id, variant.id)}
         alt=""
         width={920}
@@ -35,7 +53,7 @@ export default function ProductHero({ family, content, variant, price, inspectio
         data-hero-still
         data-family={family.id}
         data-ready={productReady}
-      />}
+      />)}
 
       <div className={styles.copy} data-hero-copy>
         <p className={styles.eyebrow}>

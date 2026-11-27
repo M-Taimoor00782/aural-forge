@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { resolveProductState } from "@/config/productStates";
 import { addCartItem } from "@/lib/cartStore";
@@ -270,133 +268,6 @@ function SiteClosingSections({
 }
 
 export default function ExperienceRuntime({ initialFamilyId = DEFAULT_PRODUCT_FAMILY_ID }) {
-  /*
-   * af-banner-emergence-dom-v1
-   *
-   * Preserve the original Canvas JSX and
-   * IntersectionObserver.
-   *
-   * ScrollTrigger owns visual presentation
-   * only while the banner is in view.
-   */
-
-  useEffect(() => {
-    const banner = document.getElementById(
-      "product-parallax-banner"
-    );
-
-    const layer = document.querySelector(
-      ".af-cinematic-layer"
-    );
-
-    if (!banner || !layer) return;
-
-    gsap.registerPlugin(ScrollTrigger);
-
-    const previousTransition = layer.style.transition;
-
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    );
-
-    const restore = () => {
-      gsap.set(layer, {
-        clearProps: "opacity,visibility,transform",
-      });
-
-      layer.style.transition = previousTransition;
-    };
-
-    const update = () => {
-      const rect = banner.getBoundingClientRect();
-      const viewport = Math.max(1, window.innerHeight);
-
-      if (rect.top >= viewport || rect.bottom <= 0) {
-        restore();
-        return;
-      }
-
-      // Suppress the old CSS fade only during
-      // GSAP's scroll-controlled presentation.
-      layer.style.transition = "none";
-
-      const fadeOut = gsap.utils.clamp(
-        0,
-        1,
-        (rect.top - viewport * 0.62) /
-          (viewport * 0.38)
-      );
-
-      const fadeIn = gsap.utils.clamp(
-        0,
-        1,
-        (viewport * 0.92 - rect.bottom) /
-          (viewport * 0.85)
-      );
-
-      const progress = Math.max(fadeOut, fadeIn);
-
-      const opacity = reducedMotion.matches
-        ? (
-            rect.top > viewport * 0.62 ||
-            rect.bottom < viewport * 0.6
-              ? 1
-              : 0
-          )
-        : progress;
-
-      gsap.set(layer, {
-        opacity,
-
-        visibility:
-          opacity <= 0.001 ? "hidden" : "visible",
-
-        y: reducedMotion.matches
-          ? 0
-          : (1 - progress) *
-            Math.min(85, viewport * 0.09),
-
-        scale: reducedMotion.matches
-          ? 1
-          : 0.97 + progress * 0.03,
-      });
-    };
-
-    const trigger = ScrollTrigger.create({
-      trigger: banner,
-      start: "top bottom",
-      end: "bottom top",
-      invalidateOnRefresh: true,
-
-      onEnter: update,
-      onEnterBack: update,
-      onUpdate: update,
-      onRefresh: update,
-      onLeave: restore,
-      onLeaveBack: restore,
-    });
-
-    const handleMotionChange = () => update();
-
-    reducedMotion.addEventListener(
-      "change",
-      handleMotionChange
-    );
-
-    update();
-
-    return () => {
-      trigger.kill();
-
-      reducedMotion.removeEventListener(
-        "change",
-        handleMotionChange
-      );
-
-      restore();
-    };
-  }, []);
-
   const getFamilyFromLink = useCallback(() => {
     const id = new URLSearchParams(window.location.search).getAll("family").at(-1);
     return isProductFamilyReady(id) ? id : initialFamilyId;
@@ -756,6 +627,7 @@ export default function ExperienceRuntime({ initialFamilyId = DEFAULT_PRODUCT_FA
   return (
     <>
       <ScrollStoryController
+        familyId={activeFamilyId}
         onStoryStateChange={handleStoryStateChange}
       />
 

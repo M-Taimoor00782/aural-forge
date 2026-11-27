@@ -79,7 +79,7 @@ export default function ProductParallaxBanner({ familyId }) {
     });
 
     return () => media.revert();
-  }, []);
+  }, [familyId]);
 
   return (
     <section ref={section} id="product-parallax-banner" className={styles.section} aria-labelledby="banner-heading">

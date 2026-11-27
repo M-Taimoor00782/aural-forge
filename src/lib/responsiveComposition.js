@@ -77,6 +77,32 @@ export function measureHeadphoneBounds(scene) {
   };
 }
 
+// Keep a small set of actual silhouette extremes for the assembled product.
+// The mechanical bounds include the detached parts and overestimate this pose.
+export function measureSilhouette(scene) {
+  scene.updateWorldMatrix(true, true);
+  const directions = [];
+  for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) for (const z of [-1, 0, 1]) {
+    if (x || y || z) directions.push({ axis: new Vector3(x, y, z), max: -Infinity, point: new Vector3() });
+  }
+  const vertex = new Vector3();
+  scene.traverse(mesh => {
+    if (!mesh.isMesh) return;
+    const position = mesh.geometry.attributes.position;
+    for (let i = 0; i < position.count; i++) {
+      vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
+      for (const extent of directions) {
+        const projection = vertex.dot(extent.axis);
+        if (projection > extent.max) {
+          extent.max = projection;
+          extent.point.copy(vertex);
+        }
+      }
+    }
+  });
+  return directions.map(extent => extent.point);
+}
+
 // Preserve the current authored product states.
 //
 // Hero, Reveal and Finale place text on the left.
@@ -615,9 +641,11 @@ export function composeResponsiveProductState(
 
 // Solve once per layout refresh against the measured CSS slot. Bounds include
 // the open mechanism; scaling never breathes as the parts travel.
-export function fitStagePose(bounds, rotation, camera, viewport, region, occupancy = .88) {
+export function fitStagePose(bounds, rotation, camera, viewport, region, occupancy = .88, silhouette) {
   const euler = new Euler(...rotation);
-  const corners = getBoxCorners(bounds).map(p => new Vector3(...p).applyEuler(euler));
+  const corners = silhouette
+    ? silhouette.map(point => point.clone().applyEuler(euler))
+    : getBoxCorners(bounds).map(p => new Vector3(...p).applyEuler(euler));
   const fit = scale => getAllowedRootPosition({
     scale, corners, camera, aspect: viewport.width / viewport.height,
     viewport, region, productZ: 0,

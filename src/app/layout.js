@@ -1,8 +1,5 @@
-﻿import {
-  Saira,
-  Montserrat,
-  Inter,
-} from "next/font/google";
+﻿import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 
 import "./globals.css";
 
@@ -10,8 +7,7 @@ import "./globals.css";
  * AURAL FORGE — ROOT LAYOUT
  *
  * Locked typography:
- * Headings use Saira until a licensed Pattanakarn Condensed webfont is available.
- * Body uses Inter. Controls and navigation use Montserrat.
+ * Pattanakarn Medium is used for headings and controls. Inter is used for body text.
  *
  * Global theme:
  * Dark / Light
@@ -20,16 +16,12 @@ import "./globals.css";
  * product-family and product-variant worlds.
  */
 
-const saira = Saira({
-  subsets: ["latin"],
-  variable: "--font-af-heading",
+const pattanakarn = localFont({
+  src: "../../public/Font/fonnts.com-Pattanakarn_Medium.ttf",
+  weight: "500",
+  style: "normal",
   display: "swap",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  variable: "--font-af-button",
-  display: "swap",
+  variable: "--font-af-display",
 });
 
 const inter = Inter({
@@ -99,8 +91,7 @@ export default function RootLayout({
       data-af-theme="dark"
       suppressHydrationWarning
       className={[
-        saira.variable,
-        montserrat.variable,
+        pattanakarn.variable,
         inter.variable,
       ].join(" ")}
     >

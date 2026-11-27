@@ -66,12 +66,14 @@ export default function ScrollChoreographyController({
     if (!root || sections.some(el => !el)) return;
     const reveal = sections[3];
     const detailTrack = sections[2].closest("[data-detail-track]");
+    const formSlot = sections[2].querySelector("[data-form-slot]");
+    const heroSlot = sections[0].querySelector("[data-hero-model-frame]");
     const banner = document.getElementById("product-parallax-banner");
     const frame = reveal.querySelector("[data-reveal-frame]");
     const slot = reveal.querySelector("[data-reveal-slot]");
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
     let viewport, compact;
-    let centers, top, end, bannerStart, takeCover, arrival, poses, timelines = [];
+    let centers, top, end, bannerStart, takeCover, bannerEnd, arrival, poses, timelines = [];
     const inspection = inspectionRef.current;
     let inspectionSection, laneSection;
 
@@ -82,7 +84,7 @@ export default function ScrollChoreographyController({
       const progress = fraction(y, top, end);
       const heldReveal = duringReveal && (reduced || progress <= .08 || progress >= .94);
       const stable = [1, 2, 4, 5].find(i => Math.abs(y - centers[i]) <= height * .09 &&
-        (i !== 2 || y < bannerStart + height * .10));
+        (i !== 2 || (formSlot ? y >= bannerEnd - 1 : y < bannerStart + height * .10)));
       const index = y <= Math.max(1, centers[0] + height * .075) ? 0 : heldReveal ? 3 : stable;
       const section = index === undefined ? null : ids[index];
       inspection.exclusive = y >= bannerStart && y <= end && !heldReveal && section !== "detail";
@@ -98,6 +100,8 @@ export default function ScrollChoreographyController({
           const frameY = frame.getBoundingClientRect().top;
           lane = { left: rect.left, right: rect.right,
             top: Math.max(header + 10, rect.top - frameY), bottom: rect.bottom - frameY };
+        } else if (index === 2 && formSlot) {
+          lane = framing(formSlot, sections[2]);
         } else {
           const copy = hero ? sections[0].querySelector("[data-hero-copy]") : sections[index].firstElementChild;
           const rect = copy.getBoundingClientRect();
@@ -122,6 +126,12 @@ export default function ScrollChoreographyController({
       }
     }
 
+    function framing(element, section) {
+      const rect = element.getBoundingClientRect();
+      const origin = section.getBoundingClientRect().top + (section === sections[0] ? 0 : (section.offsetHeight - viewport.height) / 2);
+      return { left: rect.left, right: rect.right, top: rect.top - origin, bottom: rect.bottom - origin };
+    }
+
     function measure() {
       laneSection = null;
       viewport = { width: canvasContainer.clientWidth, height: canvasContainer.clientHeight };
@@ -136,12 +146,22 @@ export default function ScrollChoreographyController({
       end = top + Math.max(0, reveal.offsetHeight - frame.offsetHeight);
       arrival = top - height;
       bannerStart = y + banner.getBoundingClientRect().top - height;
+      bannerEnd = y + banner.getBoundingClientRect().bottom;
       takeCover = bannerStart + height * .72;
       const rect = slot.getBoundingClientRect();
       const frameY = frame.getBoundingClientRect().top;
       poses = rig.camera ? fittedStoryPoses(viewport, rig, sections) :
         ["hero", "performanceDetail", "performanceDetail", "acousticReveal", "configurator", "finale"]
           .map(name => resolveProductState(name, { viewport, modelBounds: rig.bounds }));
+      if (heroSlot) {
+        const { camera, product } = poses[0];
+        poses[0] = fitStagePose(rig.bounds, product.rotation, camera, viewport,
+          framing(heroSlot, sections[0]), .98, rig.silhouette);
+      }
+      if (formSlot) {
+        poses[2] = fitStagePose(rig.bounds, [.03, .26, -.02], poses[1].camera, viewport,
+          framing(formSlot, sections[2]), compact ? .83 : .78, rig.silhouette);
+      }
       const cameraPose = rig.camera ? poses[0].camera : poses[3].camera;
       const revealBounds = compact && rig.compactRevealBounds ? rig.compactRevealBounds : rig.expandedBounds;
       poses[3] = fitStagePose(revealBounds, rig.revealRotation ?? [.03, -.77, -.035],
@@ -150,7 +170,7 @@ export default function ScrollChoreographyController({
       timelines.forEach(t => t.kill());
       timelines = SCROLL_CHOREOGRAPHY.map((segment, i) => createScrollChoreographyTimeline({
         productRoot: root, camera, viewport, segment, invalidate, from: poses[i], to: poses[i + 1],
-        modelBounds: !rig.camera && i !== 2 && i !== 3 ? rig.bounds : null,
+        modelBounds: !rig.camera && i !== 2 && i !== 3 && !(formSlot && i <= 1) ? rig.bounds : null,
       }));
     }
 
@@ -159,7 +179,26 @@ export default function ScrollChoreographyController({
       const reduced = preference.matches;
       updateInspection(y);
       let part = 0, display = 1, opacity = 1;
-      if (y < centers[2]) {
+      if (formSlot && y >= centers[1] && y < top) {
+        if (y < bannerEnd - h * .75) {
+          timelines[1].sample(0);
+          opacity = 1 - phase(fraction(y, bannerStart, takeCover), .12, .9);
+        } else if (y < centers[2]) {
+          // The banner masks the repositioning. The same assembled model then
+          // rises under its receding edge into the measured Form & Finish slot.
+          const t = fraction(y, bannerEnd - h * .75, centers[2]);
+          timelines[1].sample(reduced ? Number(y >= bannerEnd) : phase(t, 0, .86));
+          opacity = reduced ? Number(y >= bannerEnd) : phase(t, .18, .8);
+          if (!reduced) {
+            const depth = camera.position.z - root.position.z;
+            root.position.y -= (1 - phase(t, .1, 1)) * depth * .74 * Math.tan(camera.fov * Math.PI / 360);
+          }
+        } else {
+          const t = fraction(y, centers[2], top);
+          timelines[2].sample(reduced ? Number(t >= .5) : t);
+          display = reduced ? Number(t < .5) : 1 - phase(t, .26, 1);
+        }
+      } else if (y < centers[2]) {
         const i = y < centers[1] ? 0 : 1;
         const t = fraction(y, centers[i], centers[i + 1]);
         timelines[i].sample(reduced ? Number(t >= .5) : t);
@@ -198,14 +237,21 @@ export default function ScrollChoreographyController({
       onUpdate: self => update(self.scroll()),
       onRefresh: self => { measure(); update(self.scroll()); },
     });
-    const refresh = () => trigger.refresh();
+    let refreshFrame;
+    const refresh = () => {
+      cancelAnimationFrame(refreshFrame);
+      refreshFrame = requestAnimationFrame(() => trigger.refresh());
+    };
     const observer = new ResizeObserver(refresh);
     observer.observe(slot);
+    if (heroSlot) observer.observe(heroSlot);
+    if (formSlot) observer.observe(formSlot);
     if (rig.fitPortraitHero) observer.observe(sections[0].querySelector("[data-hero-copy]"));
     observer.observe(canvasContainer);
     preference.addEventListener("change", refresh);
     return () => {
       observer.disconnect();
+      cancelAnimationFrame(refreshFrame);
       preference.removeEventListener("change", refresh);
       trigger.kill();
       canvasContainer.style.removeProperty("opacity");

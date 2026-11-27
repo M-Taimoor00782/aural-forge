@@ -2,13 +2,13 @@
 .intro { margin-bottom: clamp(24px, 5vw, 50px); }
 .back {
   color: var(--af-accent);
-  font: 600 13px/1.4 var(--af-font-button);
+  font: 500 13px/1.4 var(--af-font-button);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 .intro h1 {
   margin: 16px 0 8px;
-  font: 600 clamp(48px, 7vw, 90px)/1 var(--af-font-heading);
+  font: 500 clamp(48px, 7vw, 90px)/1 var(--af-font-heading);
   letter-spacing: -.05em;
 }
 .intro p, .loading {
@@ -45,7 +45,7 @@
 }
 .lineDetails h2 {
   margin: 0 0 3px;
-  font: 600 clamp(17px, 2vw, 24px)/1.15 var(--af-font-heading);
+  font: 500 clamp(17px, 2vw, 24px)/1.15 var(--af-font-heading);
 }
 .lineDetails p {
   margin: 0;
@@ -55,7 +55,7 @@
 .lineDetails .finish { color: var(--af-accent); font-weight: 650; }
 .lineTotal {
   justify-self: end;
-  font: 650 clamp(13px, 2vw, 17px)/1.25 var(--af-font-button);
+  font: 500 clamp(13px, 2vw, 17px)/1.25 var(--af-font-button);
   font-variant-numeric: tabular-nums;
 }
 .actions {
@@ -72,7 +72,7 @@
   background: transparent;
   border: 0;
   color: var(--af-text-secondary);
-  font: 550 12px/1.4 var(--af-font-button);
+  font: 500 12px/1.4 var(--af-font-button);
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -88,7 +88,7 @@
 .summary { border-top-color: var(--af-accent); }
 .summary h2, .empty h2 {
   margin: 0;
-  font: 600 clamp(24px, 3vw, 34px)/1.1 var(--af-font-heading);
+  font: 500 clamp(24px, 3vw, 34px)/1.1 var(--af-font-heading);
 }
 .subtotal {
   display: flex;
@@ -100,7 +100,7 @@
   border-top: 1px solid var(--af-border);
   font: 500 14px/1.35 var(--af-font-body);
 }
-.subtotal strong { font: 650 20px/1.2 var(--af-font-button); white-space: nowrap; }
+.subtotal strong { font: 500 20px/1.2 var(--af-font-button); white-space: nowrap; }
 .subtotal small { font-size: 11px; color: var(--af-text-secondary); }
 .checkout {
   width: 100%;

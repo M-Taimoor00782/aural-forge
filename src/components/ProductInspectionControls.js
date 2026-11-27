@@ -51,7 +51,7 @@ export default function ProductInspectionControls({ section, inspectionRef }) {
       ref={registerSurface} role="application" tabIndex={0}
       aria-label="3D product inspection" aria-describedby="inspection-instructions"
       onKeyDown={handleKey}
-      onPointerDown={event => inspectionRef.current.api?.down(event)}>
+      onPointerDown={section === "hero" ? undefined : event => inspectionRef.current.api?.down(event)}>
       <span id="inspection-instructions" className={styles.instructions}>
         Use the left and right arrow keys to rotate, and the up and down arrow keys to tilt.
         Press Home or Escape to reset. Press Tab to continue.

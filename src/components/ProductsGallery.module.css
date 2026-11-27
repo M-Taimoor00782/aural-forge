@@ -30,7 +30,7 @@
 .section button { cursor: pointer; color: inherit; font-family: var(--af-font-button); }
 .section button:disabled { cursor: default; }
 .section button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.heading, .info h3, .explore h3 { font-family: var(--af-font-heading); font-weight: 550; letter-spacing: -.055em; line-height: 1.06; }
+.heading, .info h3, .explore h3 { font-family: var(--af-font-heading); font-weight: 500; letter-spacing: -.034em; line-height: 1.06; }
 .heading { text-align: center; font-size: clamp(42px, 5.2vw, 76px); }
 .heading span, .explore h3 span { color: var(--accent); transition: color .3s; }
 .tabs { display: flex; justify-content: center; gap: clamp(14px, 3.3vw, 52px); margin: 14px auto 0; border-bottom: 1px solid var(--line); }
@@ -67,15 +67,15 @@
 .finishNote { font-size: 12px; min-height: 3.3em; }
 .order { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-block: 8px 17px; }
 .label { display: block; margin-bottom: 5px; font-size: 12px; }
-.price { display: block; font: 550 32px/1.15 var(--af-font-heading); letter-spacing: -.045em; }
+.price { display: block; font: 500 32px/1.15 var(--af-font-heading); letter-spacing: -.045em; }
 .price small { color: var(--muted); font: 500 11px var(--af-font-button); letter-spacing: .05em; }
 .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 7px; background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .stepper button { width: 40px; height: 42px; border: 0; background: transparent; font-size: 19px; color: var(--accent); }
 .stepper button:disabled { opacity: .4; }
-.stepper output { text-align: center; min-width: 25px; font: 550 14px var(--af-font-button); font-variant-numeric: tabular-nums; }
+.stepper output { text-align: center; min-width: 25px; font: 500 14px var(--af-font-button); font-variant-numeric: tabular-nums; }
 .add { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 19px; min-height: 50px; border: 0; border-radius: 7px; background-color: var(--accent); transition: background-color .3s, filter .2s; }
 .section .add { color: var(--on-accent); font-size: 14px; font-weight: 650; }
-.add span { font: 400 22px var(--af-font-button); }
+.add span { font: 500 22px var(--af-font-button); }
 .receipt { min-height: 21px; margin-top: 5px; font-size: 12px; }
 .explore { max-width: 1190px; margin: clamp(34px, 4vw, 65px) auto 0; border-top: 1px solid var(--line); padding-top: 24px; }
 .explore h3 { font-size: clamp(28px, 2.6vw, 40px); }
@@ -83,7 +83,7 @@
 .cards button { display: flex; align-items: center; gap: 18px; text-align: start; background: color-mix(in srgb, var(--tile) 30%, var(--surface)); border: 1px solid var(--line); border-radius: 10px; padding: 9px 20px 9px 10px; transition: border-color .2s, background .2s; }
 .cards img { width: clamp(66px, 7vw, 98px); height: 72px; object-fit: contain; }
 .cards strong, .cards small { display: block; }
-.cards strong { font: 550 clamp(16px, 1.45vw, 22px)/1.2 var(--af-font-heading); }
+.cards strong { font: 500 clamp(16px, 1.45vw, 22px)/1.2 var(--af-font-heading); }
 .cards small { margin-top: 5px; font-size: 11px; color: var(--muted); }
 .arrow { margin-inline-start: auto; color: var(--accent); }
 @media (hover: hover) {

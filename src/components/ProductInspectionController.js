@@ -14,6 +14,7 @@ function restingYaw(yaw) {
 
 function reset(rotation) {
   rotation.engaged = false;
+  rotation.hoverYaw = rotation.hoverPitch = 0;
   rotation.targetYaw = restingYaw(rotation.yaw);
   rotation.targetPitch = 0;
 }
@@ -31,37 +32,6 @@ function measurePivot(pivot, content) {
     bounds.union(meshBounds.copy(mesh.geometry.boundingBox).applyMatrix4(transform));
   });
   return bounds;
-}
-
-// Fit one envelope for a whole turn so the framing stays steady as the
-// silhouette changes. Only the inspection pivot receives this scale.
-function fitTurn(pivot, half, camera, viewport, lane) {
-  if (!lane || !half) return 1;
-  const radius = Math.hypot(half.x, half.z) + half.y * Math.sin(MAX_PITCH);
-  const height = half.y + radius * Math.sin(MAX_PITCH);
-  const point = new Vector3();
-  let low = 0, high = 1;
-  pivot.parent.updateWorldMatrix(true, false);
-  camera.updateWorldMatrix(true, false);
-
-  for (let i = 0; i < 8; i++) {
-    const scale = (low + high) / 2;
-    let fits = true;
-    for (const x of [-radius, radius]) {
-      for (const y of [-height, height]) {
-        for (const z of [-radius, radius]) {
-          point.set(x, y, z).multiplyScalar(scale).add(pivot.position)
-            .applyMatrix4(pivot.parent.matrixWorld).project(camera);
-          const px = (point.x + 1) * viewport.width / 2;
-          const py = (1 - point.y) * viewport.height / 2;
-          if (px < lane.left || px > lane.right || py < lane.top || py > lane.bottom) fits = false;
-        }
-      }
-    }
-    if (fits) low = scale;
-    else high = scale;
-  }
-  return Math.max(.48, low > .99 ? 1 : low);
 }
 
 function projectSurface(pivot, half, camera, { width, height }, lane) {
@@ -97,8 +67,8 @@ export default function ProductInspectionController({ children, section, inspect
   const revealHalfRef = useRef(null);
   const reduced = useRef(false);
   const motion = useRef({
-    yaw: 0, pitch: 0, scale: 1, targetYaw: 0, targetPitch: 0,
-    engaged: false, dragging: false, lane: null, fitScale: 1,
+    yaw: 0, pitch: 0, targetYaw: 0, targetPitch: 0,
+    hoverYaw: 0, hoverPitch: 0, engaged: false, dragging: false,
   });
   const invalidate = useThree(state => state.invalidate);
 
@@ -204,6 +174,16 @@ export default function ProductInspectionController({ children, section, inspect
 
     const api = {
       down,
+      follow(x, y) {
+        if (!available() || gesture || rotation.engaged || reduced.current) return;
+        rotation.hoverYaw = .14 * x;
+        rotation.hoverPitch = -.085 * y;
+        invalidate();
+      },
+      leave() {
+        rotation.hoverYaw = rotation.hoverPitch = 0;
+        invalidate();
+      },
       turn: (yaw, pitch) => steer(yaw * Math.PI / 6, pitch * .06),
       reset() { end(); reset(rotation); invalidate(); },
     };
@@ -220,7 +200,6 @@ export default function ProductInspectionController({ children, section, inspect
       window.removeEventListener("blur", end);
       end();
       reset(rotation);
-      rotation.lane = null;
       invalidate();
     };
   }, [section, inspectionRef, invalidate]);
@@ -231,27 +210,21 @@ export default function ProductInspectionController({ children, section, inspect
     const inspection = inspectionRef.current;
     if (inspection.exclusive) {
       rotation.yaw = rotation.pitch = rotation.targetYaw = rotation.targetPitch = 0;
-      rotation.scale = 1;
+      rotation.hoverYaw = rotation.hoverPitch = 0;
       rotation.engaged = false;
     }
     const half = inspection.section === "acoustic-reveal" && revealHalfRef.current
       ? revealHalfRef.current : halfRef.current;
-    if (rotation.engaged && rotation.lane !== inspection.lane) {
-      rotation.lane = inspection.lane;
-      rotation.fitScale = fitTurn(pivot, half, camera, size, inspection.lane);
-    }
     const alpha = reduced.current ? 1 : 1 - Math.exp(-Math.min(delta, .05) / (rotation.dragging ? .04 : .09));
     function approach(value, target) {
       if (Math.abs(value - target) <= EPSILON || alpha === 1) return target;
       invalidate();
       return value + (target - value) * alpha;
     }
-    rotation.scale = approach(rotation.scale, rotation.engaged ? rotation.fitScale : 1);
-    rotation.yaw = approach(rotation.yaw, rotation.targetYaw);
-    rotation.pitch = approach(rotation.pitch, rotation.targetPitch);
-    if (!rotation.engaged && rotation.yaw === rotation.targetYaw) rotation.yaw = rotation.targetYaw = 0;
+    rotation.yaw = approach(rotation.yaw, rotation.targetYaw + (rotation.engaged ? 0 : rotation.hoverYaw));
+    rotation.pitch = approach(rotation.pitch, rotation.targetPitch + (rotation.engaged ? 0 : rotation.hoverPitch));
+    if (!rotation.engaged && !rotation.hoverYaw && rotation.yaw === rotation.targetYaw) rotation.yaw = rotation.targetYaw = 0;
     pivot.rotation.set(rotation.pitch, rotation.yaw, 0, "YXZ");
-    pivot.scale.setScalar(rotation.scale);
     if (section && inspection.section === section && inspection.lane && half && !rotation.dragging) {
       inspection.placeSurface?.(projectSurface(pivot, half, camera, size, inspection.lane));
     }

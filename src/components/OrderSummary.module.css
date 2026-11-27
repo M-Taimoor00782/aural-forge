@@ -7,7 +7,7 @@
 }
 .summary h2 {
   margin-bottom: 16px;
-  font: 600 clamp(24px, 2.7vw, 34px)/1.15 var(--af-font-heading);
+  font: 500 clamp(24px, 2.7vw, 34px)/1.15 var(--af-font-heading);
 }
 .summary ul { list-style: none; }
 .summary li {
@@ -30,6 +30,6 @@
   padding-top: 15px;
   font-size: 14px;
 }
-.total strong { font: 650 20px/1.25 var(--af-font-button); }
+.total strong { font: 500 20px/1.25 var(--af-font-button); }
 .total small { font-size: 11px; color: var(--af-text-secondary); }
 
